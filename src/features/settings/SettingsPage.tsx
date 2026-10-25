@@ -214,7 +214,7 @@ function DataSection() {
   const cfg = engine.gh();
   return (
     <Section id="data" title="Your data" meta="Your data repo keeps full history. Exports are extra copies.">
-      <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
+      <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
         {[
           ['Mode', snap.mode === 'github' ? 'GitHub repo' : 'Demo data (nothing saved)'],
           ['Repo', snap.mode === 'github' ? `${cfg.owner}/${cfg.repo}` : '–'],
@@ -235,7 +235,7 @@ function DataSection() {
       </div>
       <div className="mt-5">
         <div className="mb-2 text-[13px] font-semibold text-muted">CSV export</div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
           {CSV_DATASETS.map(ds => (
             <Button key={ds.key} variant="secondary" className="justify-start" onClick={() => download(`prime-${ds.key}-${todayStr()}.csv`, ds.build(data), 'text/csv')}>
               <FileSpreadsheet /> <span className="truncate">{ds.label}</span> <span className="ml-auto text-xs font-medium text-muted">{fmt(ds.count(data))}</span>
