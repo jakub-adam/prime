@@ -1,7 +1,7 @@
 /* App-wide state: the sync engine (data + GitHub), the in-progress workout draft and the theme. */
 import { useMemo, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
-import { goals, type Draft } from '@/core/calc';
+import { goals, withStress, type Draft } from '@/core/calc';
 import { todayStr } from '@/core/dates';
 import { sampleData } from '@/core/sample';
 import { KEYS, browserKV, readJSON, writeJSON } from '@/core/storage';
@@ -24,6 +24,12 @@ export function useData() {
 export function useGoals() {
   const settings = useData().settings;
   return useMemo(() => goals(settings), [settings]);
+}
+
+/** Apple Health days plus derived metrics (stress). Display only; never written back. */
+export function useHealthDays() {
+  const days = useData().health.days;
+  return useMemo(() => withStress(days), [days]);
 }
 
 /* ---- today (updates at midnight and when the app is reopened) ---- */

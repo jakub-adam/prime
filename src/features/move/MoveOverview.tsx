@@ -1,7 +1,7 @@
 import { Footprints, Plus, Watch } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { useData, useGoals, useToday } from '@/app/store';
+import { useData, useGoals, useHealthDays, useToday } from '@/app/store';
 import { activityLabel, allActivities, fmtDur, isRun, pace, presentMetrics, sum, tenKProjection } from '@/core/calc';
 import { addDays, fmtRelative, fmtShort } from '@/core/dates';
 import { TimeChart } from '@/components/charts';
@@ -23,7 +23,7 @@ export function MoveOverview() {
   const proj = tenKProjection(acts, today);
   const goalSec = g.tenKGoalMin * 60;
   const last4 = runs.filter(r => r.date >= addDays(today, -27));
-  const metrics = presentMetrics(data.health.days);
+  const metrics = presentMetrics(useHealthDays());
   const paceRows = runs.map(r => ({ date: r.date, pace: Math.round(pace(r)!) }));
 
   return (

@@ -4,6 +4,7 @@ import {
   riegel10k, rollingAvg, tenKProjection, weekStrip, weightSeries, presentMetrics,
 } from './calc';
 import { CSV_DATASETS, toCsv } from './csv';
+import { stressFor, stressLevel, withStress } from './calc';
 import { addDays, mondayOf } from './dates';
 import { defaults } from './ops';
 import type { Session } from './types';
@@ -115,5 +116,30 @@ describe('csv', () => {
     const d = defaults();
     d.training.sessions = [sess('s', '2026-10-01', 'U', 80, 8)];
     expect(CSV_DATASETS.find(x => x.key === 'sets')!.build(d)).toContain('s,2026-10-01,U,Bench press,weight,1,8,80,');
+  });
+});
+
+describe('stress estimate', () => {
+  const days: Record<string, { hrv?: number; restingHr?: number }> = {};
+  for (let i = 1; i <= 14; i++) days[`2026-10-${String(i).padStart(2, '0')}`] = { hrv: i % 2 ? 50 : 60, restingHr: i % 2 ? 60 : 64 };
+  it('is 50 on a normal day and rises with low HRV and high resting HR', () => {
+    expect(stressFor({ ...days, '2026-10-15': { hrv: 55, restingHr: 62 } }, '2026-10-15')!.score).toBe(50);
+    const bad = stressFor({ ...days, '2026-10-15': { hrv: 40, restingHr: 70 } }, '2026-10-15')!;
+    expect(bad.score).toBeGreaterThan(80);
+    expect(bad.hrv!.z).toBeLessThan(0);
+    expect(stressLevel(bad.score)).toBe('high');
+    const good = stressFor({ ...days, '2026-10-15': { hrv: 70, restingHr: 56 } }, '2026-10-15')!;
+    expect(good.score).toBeLessThan(20);
+  });
+  it('needs a baseline of 5 earlier days and works with one signal', () => {
+    expect(stressFor(days, '2026-10-03')).toBeNull();
+    expect(stressFor({ ...days, '2026-10-15': { restingHr: 62 } }, '2026-10-15')!.hrv).toBeNull();
+  });
+  it('adds stress without changing the input', () => {
+    const copy = JSON.parse(JSON.stringify(days));
+    const out = withStress(days);
+    expect(days).toEqual(copy);
+    expect(out['2026-10-14']!.stress).toBeTypeOf('number');
+    expect(out['2026-10-02']!.stress).toBeUndefined();
   });
 });

@@ -1,10 +1,10 @@
 import { Dumbbell, Footprints, Play, Plus, Timer, UtensilsCrossed } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { useData, useDraft, useGoals, useToday } from '@/app/store';
+import { useData, useDraft, useGoals, useHealthDays, useToday } from '@/app/store';
 import {
   activityLabel, allActivities, avg, byDateDesc, dayTotals, fmtDur, lastNDays, mealsOn, METRICS, metricSeries, presentMetrics,
-  rollingAvg, sessionSets, tenKProjection, weightSeries, type MetricKey,
+  rollingAvg, sessionSets, STRESS_LABEL, stressLevel, tenKProjection, weightSeries, type MetricKey,
 } from '@/core/calc';
 import { addDays, fmtLong, fmtRelative, fmtShort } from '@/core/dates';
 import { Legend, Sparkline, TimeChart } from '@/components/charts';
@@ -18,7 +18,7 @@ import { StartWorkoutSheet } from '@/features/train/StartWorkoutSheet';
 import { cn, fmt, signed } from '@/lib/utils';
 
 export function useMetricTile(key: MetricKey) {
-  const days = useData().health.days;
+  const days = useHealthDays();
   return useMemo(() => {
     const def = METRICS[key];
     const { last, values } = lastNDays(days, key, 7);
@@ -35,8 +35,8 @@ export function MetricTile({ k, className }: { k: MetricKey; className?: string 
       to={`/metric/${k}`}
       label={t.def.label}
       value={t.avg == null ? '–' : fmt(t.avg, t.def.dp)}
-      unit={t.def.unit === 'steps' ? undefined : t.def.unit}
-      sub={t.last ? `7-day avg · to ${fmtShort(t.last)}` : 'Import Apple Health'}
+      unit={t.def.unit === 'steps' || t.def.unit === 'score' ? undefined : t.def.unit}
+      sub={t.last ? `${k === 'stress' && t.avg != null ? `${STRESS_LABEL[stressLevel(t.avg)]} · ` : ''}7-day avg · to ${fmtShort(t.last)}` : 'Import Apple Health'}
       chart={<Sparkline values={t.spark} color={t.def.color} kind={t.def.chart} className="h-7 w-full" />}
       className={className}
     />
@@ -242,10 +242,10 @@ function TenKCard({ className }: { className?: string }) {
 }
 
 export function TodayPage() {
-  const data = useData();
   const today = useToday();
   const desktop = useIsDesktop();
-  const metrics = presentMetrics(data.health.days);
+  const healthDays = useHealthDays();
+  const metrics = presentMetrics(healthDays);
   const extra = metrics.filter(k => k !== 'steps' && k !== 'sleepH');
   return (
     <div>

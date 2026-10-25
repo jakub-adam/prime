@@ -285,7 +285,7 @@ export function weekStrip(data: DataFiles, monday: string, today: string): WeekD
 }
 
 /* ---------- Apple Health daily metrics ---------- */
-export type MetricKey = 'steps' | 'sleepH' | 'restingHr' | 'hrv' | 'activeKcal' | 'distanceKm' | 'exerciseMin' | 'walkingHr' | 'vo2max';
+export type MetricKey = 'steps' | 'sleepH' | 'restingHr' | 'hrv' | 'activeKcal' | 'distanceKm' | 'exerciseMin' | 'walkingHr' | 'vo2max' | 'stress';
 export type MetricDef = {
   key: MetricKey;
   label: string;
@@ -305,9 +305,10 @@ export const METRICS: Record<MetricKey, MetricDef> = {
   distanceKm: { key: 'distanceKm', label: 'Distance', unit: 'km', dp: 1, chart: 'bar', color: 'lane', higherIsBetter: true, blurb: 'Walking and running distance for the day.' },
   exerciseMin: { key: 'exerciseMin', label: 'Exercise', unit: 'min', dp: 0, chart: 'bar', color: 'track', higherIsBetter: true, blurb: 'Apple Exercise minutes (brisk movement or workouts).' },
   walkingHr: { key: 'walkingHr', label: 'Walking HR', unit: 'bpm', dp: 0, chart: 'line', color: 'track', higherIsBetter: false, blurb: 'Average heart rate while walking. Drops as fitness improves.' },
+  stress: { key: 'stress', label: 'Stress', unit: 'score', dp: 0, chart: 'bar', color: 'track', higherIsBetter: false, blurb: 'An estimate, not a measurement: Apple Watch does not record stress. Calculated each day from HRV and resting heart rate against your own previous 4 weeks. 50 is your normal; higher means lower HRV and/or higher resting HR than usual.' },
   vo2max: { key: 'vo2max', label: 'VO₂ max', unit: 'ml/kg/min', dp: 1, chart: 'line', color: 'lane', higherIsBetter: true, blurb: 'Apple Watch cardio fitness estimate from outdoor walks and runs.' },
 };
-export const METRIC_ORDER: MetricKey[] = ['steps', 'sleepH', 'restingHr', 'hrv', 'activeKcal', 'exerciseMin', 'distanceKm', 'walkingHr', 'vo2max'];
+export const METRIC_ORDER: MetricKey[] = ['steps', 'sleepH', 'stress', 'restingHr', 'hrv', 'activeKcal', 'exerciseMin', 'distanceKm', 'walkingHr', 'vo2max'];
 
 export function healthDays(days: Record<string, HealthDay>) {
   return Object.keys(days).sort();
@@ -338,4 +339,50 @@ export function rolling(series: { date: string; v: number | null }[], n = 7) {
     const a = avg(win);
     return { date: p.date, v: a == null ? null : a };
   });
+}
+
+/* ---------- stress estimate (derived, never saved) ----------
+   Apple Watch has no stress metric. This scores each day 0–100 from how far HRV (lower = more
+   stress) and resting HR (higher = more stress) are from your own baseline: the previous 28 days,
+   at least 5 values. z-scores are averaged; 50 is normal, each standard deviation moves 20 points. */
+export const STRESS = { baselineDays: 28, minBaseline: 5, pointsPerSd: 20, minSd: { hrv: 3, restingHr: 1.5 } } as const;
+export type StressLevel = 'low' | 'moderate' | 'high';
+export const stressLevel = (v: number): StressLevel => (v >= 65 ? 'high' : v > 35 ? 'moderate' : 'low');
+export const STRESS_LABEL: Record<StressLevel, string> = { low: 'Low', moderate: 'Moderate', high: 'High' };
+
+function baseline(days: Record<string, HealthDay>, date: string, key: 'hrv' | 'restingHr') {
+  const from = addDays(date, -STRESS.baselineDays);
+  const vals = Object.keys(days).filter(d => d >= from && d < date).map(d => days[d]![key]).filter((v): v is number => v != null);
+  if (vals.length < STRESS.minBaseline) return null;
+  const mean = sum(vals) / vals.length;
+  return { mean, sd: Math.max(stdev(vals) ?? 0, STRESS.minSd[key]), n: vals.length };
+}
+
+export type StressDrivers = {
+  score: number;
+  hrv: { value: number; mean: number; z: number } | null;
+  restingHr: { value: number; mean: number; z: number } | null;
+};
+export function stressFor(days: Record<string, HealthDay>, date: string): StressDrivers | null {
+  const day = days[date];
+  if (!day) return null;
+  const part = (key: 'hrv' | 'restingHr') => {
+    const value = day[key];
+    const b = value != null ? baseline(days, date, key) : null;
+    return value != null && b ? { value, mean: b.mean, z: (value - b.mean) / b.sd } : null;
+  };
+  const hrv = part('hrv'), restingHr = part('restingHr');
+  const zs = [hrv ? -hrv.z : null, restingHr ? restingHr.z : null].filter((z): z is number => z != null);
+  if (!zs.length) return null;
+  const score = Math.round(Math.min(100, Math.max(0, 50 + STRESS.pointsPerSd * (sum(zs) / zs.length))));
+  return { score, hrv, restingHr };
+}
+/** Health days with the derived `stress` score added. Returns a copy; health.json is never changed. */
+export function withStress(days: Record<string, HealthDay>): Record<string, HealthDay> {
+  const out: Record<string, HealthDay> = {};
+  for (const d of Object.keys(days)) {
+    const st = stressFor(days, d);
+    out[d] = st ? { ...days[d], stress: st.score } : days[d]!;
+  }
+  return out;
 }

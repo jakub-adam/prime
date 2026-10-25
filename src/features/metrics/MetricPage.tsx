@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { useData, useGoals } from '@/app/store';
+import { useGoals, useHealthDays } from '@/app/store';
 import { NotFound } from '@/app/NotFound';
-import { avg, healthDays, METRIC_ORDER, METRICS, metricSeries, rolling, stdev, type MetricKey } from '@/core/calc';
+import { avg, healthDays, METRIC_ORDER, METRICS, metricSeries, rolling, stdev, STRESS_LABEL, stressFor, stressLevel, type MetricKey } from '@/core/calc';
+import type { ChartColor } from '@/components/charts';
 import { addDays, daysBetween, fmtDay, fmtShort, mondayOf } from '@/core/dates';
 import { Legend, TimeChart } from '@/components/charts';
 import { EmptyState, KV, PageHeader } from '@/components/common';
@@ -13,13 +14,56 @@ import { cn, fmt } from '@/lib/utils';
 
 type Range = '7' | '30' | '90' | 'all';
 
+const stressColor = (v: number): ChartColor => { const l = stressLevel(v); return l === 'high' ? 'track' : l === 'moderate' ? 'muted' : 'lane'; };
+
+function StressDrivers({ date }: { date: string }) {
+  const days = useHealthDays();
+  const st = stressFor(days, date);
+  if (!st) return null;
+  const level = stressLevel(st.score);
+  const row = (label: string, d: { value: number; mean: number; z: number } | null, unit: string, higherIsStress: boolean) => {
+    if (!d) return <li className="flex justify-between gap-4 border-b border-line/70 py-2 text-sm"><span className="text-muted">{label}</span><span className="text-muted">no baseline yet</span></li>;
+    const diff = d.value - d.mean;
+    const stressful = higherIsStress ? diff > 0 : diff < 0;
+    return (
+      <li className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line/70 py-2 text-sm">
+        <span className="text-muted">{label}</span>
+        <span>
+          <span className="num text-lg font-semibold">{fmt(d.value, 0)} {unit}</span>
+          <span className={cn('ml-2 font-semibold', Math.abs(d.z) < 0.5 ? 'text-muted' : stressful ? 'text-track-ink' : 'text-good')}>
+            {diff >= 0 ? '+' : '−'}{fmt(Math.abs(diff), 0)} vs your usual {fmt(d.mean, 0)}
+          </span>
+        </span>
+      </li>
+    );
+  };
+  return (
+    <Card className="lg:col-span-12">
+      <CardHeader title="What drives it" meta={`${fmtDay(date)} · score ${st.score}, ${STRESS_LABEL[level].toLowerCase()}`} />
+      <CardBody className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ul>
+          {row('HRV (lower = more stress)', st.hrv, 'ms', false)}
+          {row('Resting heart rate (higher = more stress)', st.restingHr, 'bpm', true)}
+        </ul>
+        <div className="text-sm text-muted">
+          <ul className="mb-3 flex flex-wrap gap-2">
+            <li className="rounded-lg bg-lane-soft px-2.5 py-1 font-semibold text-lane-ink">0–35 Low</li>
+            <li className="rounded-lg bg-surface-3 px-2.5 py-1 font-semibold text-ink">36–64 Moderate</li>
+            <li className="rounded-lg bg-track-soft px-2.5 py-1 font-semibold text-track-ink">65–100 High</li>
+          </ul>
+          <p>Your usual values are the averages of the previous 4 weeks. Illness, alcohol, poor sleep, hard training and stress all push HRV down and resting HR up, so read a high score as “body under load”, not just mental stress. It is not a medical measurement.</p>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
 export function MetricPage() {
   const { key } = useParams();
-  const data = useData();
   const g = useGoals();
   const [range, setRange] = useState<Range>('30');
   const isKey = (k: string | undefined): k is MetricKey => !!k && (METRIC_ORDER as string[]).includes(k);
-  const days = data.health.days;
+  const days = useHealthDays();
   const k = isKey(key) ? key : null;
   const all = useMemo(() => (k ? healthDays(days).filter(d => days[d]?.[k] != null) : []), [days, k]);
   if (!k) return <NotFound />;
@@ -28,7 +72,8 @@ export function MetricPage() {
   const firstDay = all[0];
   const goal = k === 'steps' ? g.stepsGoal : k === 'sleepH' ? g.sleepGoalH : null;
   const f = (v: number | null | undefined) => fmt(v, def.dp);
-  const unitStr = def.unit === 'steps' ? '' : ` ${def.unit}`;
+  const unitStr = def.unit === 'steps' || def.unit === 'score' ? '' : ` ${def.unit}`;
+  const avgColor: ChartColor = k === 'stress' ? 'good' : def.chart === 'bar' ? 'track' : def.color;
 
   if (!lastDay) {
     return (
@@ -93,20 +138,22 @@ export function MetricPage() {
               data={rows}
               height={320}
               zero={def.chart === 'bar'}
+              maxY={k === 'stress' ? 100 : undefined}
               goal={goal != null ? { value: goal, label: k === 'sleepH' ? `${fmt(goal, 1)} h target` : `Goal ${fmt(goal)}` } : null}
               series={[
                 def.chart === 'bar'
-                  ? { key: 'v', label: def.label, kind: 'bar', color: def.color, format: v => `${f(v)}${unitStr}`, colorAt: goal != null ? v => (v >= goal ? def.color : 'muted') : undefined }
+                  ? { key: 'v', label: def.label, kind: 'bar', color: def.color, format: v => k === 'stress' ? `${f(v)} · ${STRESS_LABEL[stressLevel(v)]}` : `${f(v)}${unitStr}`, colorAt: k === 'stress' ? stressColor : goal != null ? v => (v >= goal ? def.color : 'muted') : undefined }
                   : { key: 'v', label: def.label, kind: 'dots', color: def.color, format: v => `${f(v)}${unitStr}` },
-                { key: 'avg', label: '7-day avg', kind: 'line', color: def.chart === 'bar' ? 'track' : def.color, format: v => `${f(v)}${unitStr}` },
+                { key: 'avg', label: '7-day avg', kind: 'line', color: avgColor, format: v => `${f(v)}${unitStr}` },
               ]}
               yFormat={k === 'steps' ? v => (v >= 1000 ? `${v / 1000}k` : String(v)) : undefined}
               ariaLabel={`${def.label} per day with 7-day average`}
             />
             <div className="mt-3">
               <Legend items={[
-                { label: def.chart === 'bar' ? (goal != null ? 'Day (grey = under goal)' : 'Day') : 'Day', color: def.color, kind: def.chart === 'bar' ? 'bar' : 'dot' },
-                { label: '7-day average', color: def.chart === 'bar' ? 'track' : def.color, kind: 'line' },
+                { label: k === 'stress' ? 'Low' : def.chart === 'bar' ? (goal != null ? 'Day (grey = under goal)' : 'Day') : 'Day', color: k === 'stress' ? 'lane' : def.color, kind: def.chart === 'bar' ? 'bar' : 'dot' },
+                ...(k === 'stress' ? [{ label: 'Moderate', color: 'muted' as const, kind: 'bar' as const }, { label: 'High', color: 'track' as const, kind: 'bar' as const }] : []),
+                { label: '7-day average', color: avgColor, kind: 'line' },
                 ...(goal != null ? [{ label: 'Goal', color: 'muted' as const, kind: 'dash' as const }] : []),
               ]} />
             </div>
@@ -136,6 +183,7 @@ export function MetricPage() {
             </table>
           </CardBody>
         </Card>
+        {k === 'stress' ? <StressDrivers date={lastDay} /> : null}
         <nav aria-label="Other metrics" className="lg:col-span-12">
           <div className="flex flex-wrap gap-2">
             {METRIC_ORDER.filter(m => m !== k && healthDays(days).some(d => days[d]?.[m] != null)).map(m => (

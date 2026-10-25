@@ -53,7 +53,7 @@ export async function waitReady(page: Page) {
   await page.waitForSelector('main#main h1');
   await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'));
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(600); // let the page fade (exit + enter) finish
 }
 
 export const ROUTES: [string, string][] = [
@@ -75,6 +75,7 @@ export const ROUTES: [string, string][] = [
   ['move-activity-watch', `/move/activity/${encodeURIComponent('w2026-10-23 18:20:00 +0200')}`],
   ['metric-steps', '/metric/steps'],
   ['metric-sleep', '/metric/sleepH'],
+  ['metric-stress', '/metric/stress'],
   ['metric-restinghr', '/metric/restingHr'],
   ['metric-hrv', '/metric/hrv'],
   ['metric-activekcal', '/metric/activeKcal'],

@@ -62,7 +62,7 @@ function ChartTooltip({ active, payload, label, series }: TooltipContentProps<nu
   );
 }
 
-export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, onSelect, yFormat, empty, className, timeAxis }: {
+export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, onSelect, yFormat, empty, className, timeAxis, maxY }: {
   data: Row[];
   series: Series[];
   goal?: { value: number; label: string } | null;
@@ -75,6 +75,8 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
   className?: string;
   /** y values are seconds: use minute-friendly tick steps */
   timeAxis?: boolean;
+  /** hard upper bound for the y axis (e.g. 100 for scores) */
+  maxY?: number;
 }) {
   const reduced = useReducedMotion();
   const values = data.flatMap(r => series.map(s => r[s.key])).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
@@ -85,7 +87,8 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
       </div>
     );
   }
-  const ticks = niceDomain(goal ? [...values, goal.value] : values, !!zero, timeAxis);
+  const nice = niceDomain(goal ? [...values, goal.value] : values, !!zero, timeAxis);
+  const ticks = maxY != null ? [...nice.filter(t => t < maxY), maxY] : nice;
   const domain: [number, number] = [ticks[0]!, ticks[ticks.length - 1]!];
   const many = data.length > 45;
   return (
