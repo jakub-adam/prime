@@ -252,9 +252,12 @@ export function allActivities(data: Pick<DataFiles, 'activities' | 'health'>): A
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.watchStart || '').localeCompare(a.watchStart || '')));
 }
+const SHORT_TYPE: Record<string, string> = { Running: 'Run', Walking: 'Walk', Cycling: 'Ride', Hiking: 'Hike', Swimming: 'Swim' };
+export const shortType = (t: string) => SHORT_TYPE[t] ?? t;
 export function activityLabel(a: { type: string; distanceKm?: number | null; durationSec?: number }) {
-  if (a.distanceKm) return `${a.type} ${a.distanceKm.toFixed(1)} km`;
-  return `${a.type} ${Math.round((a.durationSec || 0) / 60)} min`;
+  const t = shortType(a.type);
+  if (a.distanceKm) return `${t} ${a.distanceKm.toFixed(1)} km`;
+  return `${t} ${Math.round((a.durationSec || 0) / 60)} min`;
 }
 export function tenKProjection(acts: ActivityView[], today: string) {
   const runs = acts.filter(a => isRun(a.type) && pace(a) && a.date >= addDays(today, -42) && (a.distanceKm || 0) >= 2);

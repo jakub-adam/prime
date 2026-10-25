@@ -109,13 +109,13 @@ function WeekCard({ className }: { className?: string }) {
   const [picking, setPicking] = useState(false);
   const draft = useDraft();
   return (
-    <Card className={className} aria-labelledby="week-h">
+    <Card className={cn('flex flex-col', className)} aria-labelledby="week-h">
       <CardHeader id="week-h" title="This week" action={
         draft
           ? <Button asChild variant="lane" size="sm"><Link to="/train/log"><Play /> Resume workout</Link></Button>
           : <Button variant="lane" size="sm" onClick={() => setPicking(true)}><Play /> Start workout</Button>
       } />
-      <CardBody><WeekStrip /></CardBody>
+      <CardBody className="flex-1"><WeekStrip /></CardBody>
       <StartWorkoutSheet open={picking} onOpenChange={setPicking} />
     </Card>
   );
@@ -125,7 +125,7 @@ function TrendCard({ title, to, children, meta, className }: { title: string; to
   return (
     <Card className={cn('flex flex-col', className)}>
       <CardHeader title={<Link to={to} className="hover:underline hover:underline-offset-4">{title}</Link>} meta={meta}
-        action={<Button asChild variant="ghost" size="sm" className="-mr-2 text-lane-ink"><Link to={to} aria-label={`Open ${title}`}>Details</Link></Button>} />
+        action={<Button asChild variant="ghost" size="sm" className="-mr-2 text-lane-ink"><Link to={to}>Details<span className="sr-only"> for {title}</span></Link></Button>} />
       <CardBody className="flex-1 pt-1">{children}</CardBody>
     </Card>
   );
@@ -261,10 +261,10 @@ export function TodayPage() {
             {extra.map(k => <MetricTile key={k} k={k} />)}
           </div>
         )}
-        <RecentWorkouts className="lg:col-span-5" />
-        <TenKCard className="lg:col-span-3" />
+        <RecentWorkouts className="lg:col-span-6 xl:col-span-5" />
+        <TenKCard className="lg:col-span-6 xl:col-span-3" />
         {desktop ? (
-          <div className="grid grid-cols-2 content-start gap-3 lg:col-span-4">
+          <div className="grid grid-cols-3 content-start gap-3 lg:col-span-12 xl:col-span-4 xl:grid-cols-2">
             {extra.length ? extra.slice(0, 6).map(k => <MetricTile key={k} k={k} />) : (
               <Card className="col-span-2"><CardBody className="pt-4"><EmptyState title="More health metrics" action={<Button asChild size="sm"><Link to="/settings">Import Apple Health</Link></Button>}>Resting heart rate, HRV, active energy and more appear here after an Apple Health import.</EmptyState></CardBody></Card>
             )}

@@ -21,7 +21,7 @@ export type Series = {
 };
 export type Row = { date: string } & Record<string, number | null | string>;
 
-function niceDomain(values: number[], zero: boolean): [number, number] {
+function niceDomain(values: number[], zero: boolean, time = false): number[] {
   if (!values.length) return [0, 1];
   let lo = Math.min(...values), hi = Math.max(...values);
   if (zero) lo = Math.min(0, lo);
@@ -31,8 +31,13 @@ function niceDomain(values: number[], zero: boolean): [number, number] {
   hi += pad;
   const raw = (hi - lo) / 4;
   const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? 10 * mag;
-  return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
+  const step = time
+    ? [5, 10, 15, 20, 30, 60, 120, 300, 600, 900, 1800, 3600].find(s => s >= raw) ?? 3600
+    : [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? 10 * mag;
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step;
+  const ticks: number[] = [];
+  for (let v = a; v <= b + step / 2; v += step) ticks.push(+v.toFixed(6));
+  return ticks;
 }
 
 function ChartTooltip({ active, payload, label, series }: TooltipContentProps<number, string> & { series: Series[] }) {
@@ -57,7 +62,7 @@ function ChartTooltip({ active, payload, label, series }: TooltipContentProps<nu
   );
 }
 
-export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, onSelect, yFormat, empty, className }: {
+export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, onSelect, yFormat, empty, className, timeAxis }: {
   data: Row[];
   series: Series[];
   goal?: { value: number; label: string } | null;
@@ -68,6 +73,8 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
   yFormat?: (v: number) => string;
   empty?: ReactNode;
   className?: string;
+  /** y values are seconds: use minute-friendly tick steps */
+  timeAxis?: boolean;
 }) {
   const reduced = useReducedMotion();
   const values = data.flatMap(r => series.map(s => r[s.key])).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
@@ -78,21 +85,22 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
       </div>
     );
   }
-  const domain = niceDomain(goal ? [...values, goal.value] : values, !!zero);
+  const ticks = niceDomain(goal ? [...values, goal.value] : values, !!zero, timeAxis);
+  const domain: [number, number] = [ticks[0]!, ticks[ticks.length - 1]!];
   const many = data.length > 45;
   return (
     <div role="img" aria-label={ariaLabel} className={cn('w-full select-none', className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%" debounce={60}>
         <ComposedChart
           data={data}
-          margin={{ top: 12, right: goal ? 52 : 6, bottom: 0, left: 0 }}
+          margin={{ top: 12, right: goal ? Math.max(36, Math.round(goal.label.length * 6.6) + 10) : 6, bottom: 0, left: 0 }}
           accessibilityLayer={false}
           onClick={onSelect ? (s: { activeLabel?: string | number }) => { if (s?.activeLabel) onSelect(String(s.activeLabel)); } : undefined}
           style={onSelect ? { cursor: 'pointer' } : undefined}
         >
           <CartesianGrid vertical={false} strokeDasharray="0" />
           <XAxis dataKey="date" tickFormatter={fmtShort} tickLine={false} axisLine={false} minTickGap={28} interval="preserveStartEnd" tickMargin={8} height={26} />
-          <YAxis domain={domain} tickFormatter={yFormat ?? (v => String(+v.toFixed(1)))} tickLine={false} axisLine={false} width={44} tickCount={5} allowDecimals />
+          <YAxis domain={domain} tickFormatter={yFormat ?? (v => String(+v.toFixed(1)))} tickLine={false} axisLine={false} width={44} ticks={ticks} interval={0} allowDecimals />
           <Tooltip
             content={p => <ChartTooltip {...(p as TooltipContentProps<number, string>)} series={series} />}
             cursor={{ fill: 'var(--surface-3)', fillOpacity: 0.6, stroke: 'var(--line-strong)' }}
@@ -100,7 +108,7 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
           />
           {goal ? (
             <ReferenceLine y={goal.value} stroke="var(--muted)" strokeDasharray="5 4" ifOverflow="extendDomain"
-              label={{ value: goal.label, position: 'right', fill: 'var(--muted)', fontSize: 12, fontWeight: 600, width: 50 }} />
+              label={{ value: goal.label, position: 'right', fill: 'var(--muted)', fontSize: 12, fontWeight: 600 }} />
           ) : null}
           {series.map(s => {
             if (s.kind === 'bar') {

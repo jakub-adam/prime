@@ -94,7 +94,7 @@ describe('activities and the week strip', () => {
     expect(wk.map(x => x.state)).toEqual(['rest', 'logged', 'logged', 'logged', 'empty', 'empty', 'empty']);
     expect(wk[1]!.items.map(i => i.label)).toEqual(['Lower A']);
     expect(wk[2]!.items.map(i => i.label)).toEqual(['Run 5.2 km']);
-    expect(wk[3]!.items).toHaveLength(2);
+    expect(wk[3]!.items.map(i => i.label)).toEqual(['Walk 3.1 km', 'Run 4.0 km']);
     expect(wk[4]!.isToday).toBe(true);
   });
   it('10 km projection uses the best run of 2 km+ in the last 6 weeks', () => {

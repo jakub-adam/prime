@@ -31,9 +31,37 @@ for (const theme of THEMES) {
         await waitReady(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect.soft(overflow, `${name} @${width} ${theme}: horizontal overflow`).toBeLessThanOrEqual(0);
+        // Full-page captures: pin the fixed tab bar to the end of the page instead of mid-image.
+        await page.addStyleTag({ content: 'html{position:relative} nav.fixed{position:absolute!important}' });
         await page.screenshot({ path: `tests/screenshots/out/${theme}/${width}/${name}.png`, fullPage: true });
       }
       expect(errors, 'console errors').toEqual([]);
+    });
+  }
+}
+
+/* Forms: bottom sheet on phones, dialog on larger screens. Viewport captures. */
+for (const theme of THEMES) {
+  for (const width of [390, 1440]) {
+    test(`sheets ${theme} ${width}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: width < 768 ? 800 : 900 });
+      await setup(page, { theme });
+      const shots: [string, string, string][] = [
+        ['sheet-meal', '/food', 'Log meal'],
+        ['sheet-workout', '/today', 'Start workout'],
+        ['sheet-weighin', '/body/weight', 'Add weigh-in'],
+        ['sheet-activity', '/move', 'Log activity'],
+      ];
+      for (const [name, path, button] of shots) {
+        await page.goto(`/#${path}`);
+        await waitReady(page);
+        await page.getByRole('button', { name: button }).first().click();
+        await page.getByRole('dialog').waitFor();
+        await page.waitForTimeout(500);
+        await page.screenshot({ path: `tests/screenshots/out/${theme}/${width}/${name}.png` });
+        await page.keyboard.press('Escape');
+        await page.getByRole('dialog').waitFor({ state: 'detached' });
+      }
     });
   }
 }

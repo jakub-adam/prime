@@ -41,7 +41,7 @@ export function MoveOverview() {
           <CardBody>
             <TimeChart data={paceRows} height={300} goal={{ value: goalSec / 10, label: `Goal ${fmtDur(goalSec / 10)}` }}
               series={[{ key: 'pace', label: 'Pace', kind: 'line', color: 'track', format: v => `${fmtDur(v)} /km` }]}
-              yFormat={v => fmtDur(v)} ariaLabel="Running pace per run against the goal pace" empty="Log a run to see your pace trend." />
+              yFormat={v => fmtDur(v)} timeAxis ariaLabel="Running pace per run against the goal pace" empty="Log a run to see your pace trend." />
             <p className="mt-3 text-[13px] text-muted">The projection uses Riegel’s formula (T₂ = T₁ × (10 / d)^1.06) on your best run of 2 km+ in the last 6 weeks. It is optimistic for runs much shorter than 10 km.</p>
           </CardBody>
         </Card>

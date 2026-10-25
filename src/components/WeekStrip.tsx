@@ -40,11 +40,11 @@ function WeekSummary({ days }: { days: WeekDay[] }) {
     ['Rest days', String(rest)],
   ];
   return (
-    <dl className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+    <dl className="mt-3 grid grid-cols-3 gap-2 @[560px]:grid-cols-5">
       {items.map(([k, v], i) => (
-        <div key={k} className={cn('rounded-xl bg-surface-2 px-3 py-2', i > 2 && 'max-sm:hidden')}>
-          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">{k}</dt>
-          <dd className="num text-xl leading-tight font-semibold">{v}</dd>
+        <div key={k} className={cn('rounded-xl bg-surface-2 px-3 py-2', i > 2 && '@max-[559px]:hidden')}>
+          <dt className="truncate text-[11px] font-semibold tracking-wide text-muted uppercase">{k}</dt>
+          <dd className="num text-xl leading-tight font-semibold whitespace-nowrap">{v}</dd>
         </div>
       ))}
     </dl>
@@ -64,7 +64,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
   const count = days.reduce((n, d) => n + d.items.length, 0);
 
   return (
-    <div>
+    <div className="@container flex h-full flex-col">
       <div className="flex items-center justify-between gap-2">
         {title}
         <div className="ml-auto flex items-center gap-1">
@@ -82,7 +82,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
         </div>
       </div>
 
-      <ol className="mt-2 grid grid-cols-7 gap-1.5 md:gap-2" aria-label={`${weekLabel(monday, thisMonday)}: ${count} logged`}>
+      <ol className="mt-2 grid flex-1 grid-cols-7 gap-1.5 @[640px]:gap-2" aria-label={`${weekLabel(monday, thisMonday)}: ${count} logged`}>
         {days.map(d => (
           <li key={d.date} className="min-w-0">
             {/* Phone: compact day buttons; details for the chosen day show underneath. */}
@@ -91,7 +91,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
               onClick={() => setSelected(d.date)}
               aria-pressed={sel.date === d.date}
               className={cn(
-                'flex h-[72px] w-full flex-col items-center justify-center gap-0.5 rounded-xl border text-center transition-colors md:hidden',
+                'flex h-[72px] w-full flex-col items-center justify-center gap-0.5 rounded-xl border text-center transition-colors @[640px]:hidden',
                 d.isToday ? 'border-track bg-track-soft/60' : 'border-line bg-surface-2',
                 sel.date === d.date && 'ring-2 ring-lane/60',
               )}
@@ -108,7 +108,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
 
             {/* Tablet and up: full labels, each item clickable. */}
             <div className={cn(
-              'hidden h-full min-h-[132px] flex-col rounded-xl border p-2 md:flex',
+              'hidden h-full min-h-[132px] flex-col rounded-xl border p-2 @[640px]:flex',
               d.isToday ? 'border-track bg-track-soft/50' : 'border-line bg-surface-2',
             )}>
               <div className="flex items-baseline justify-between px-1">
@@ -122,12 +122,12 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
                     to={i.href}
                     title={i.label}
                     className={cn(
-                      'flex min-h-8 items-center gap-1.5 rounded-lg px-1.5 py-1 text-[13px] leading-tight font-semibold transition-colors',
-                      i.kind === 'session' ? 'bg-track-soft text-track-ink hover:bg-track/15' : 'bg-lane-soft text-lane-ink hover:bg-lane/15',
+                      'flex min-h-8 items-center rounded-md border-l-[3px] px-2 py-1 text-[13px] leading-tight font-semibold transition-colors',
+                      i.kind === 'session' ? 'border-track bg-track-soft text-track-ink hover:bg-track/15' : 'border-lane bg-lane-soft text-lane-ink hover:bg-lane/15',
                     )}
                   >
-                    <ItemIcon kind={i.kind} />
-                    <span className="line-clamp-2 break-words">{i.label}</span>
+                    <span className="sr-only">{i.kind === 'session' ? 'Workout: ' : 'Activity: '}</span>
+                    <span className="line-clamp-2">{i.label}</span>
                   </Link>
                 )) : (
                   <span className={cn('grid flex-1 place-items-center text-sm', d.state === 'rest' ? 'text-muted' : 'text-muted/80')}>{emptyText(d)}</span>
@@ -140,7 +140,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
 
       <WeekSummary days={days} />
 
-      <div className="mt-3 md:hidden">
+      <div className="mt-3 @[640px]:hidden">
         <div className="mb-1 text-[13px] font-semibold text-muted">{fmtDay(sel.date)}</div>
         {sel.items.length ? (
           <ul className="flex flex-col gap-1.5">

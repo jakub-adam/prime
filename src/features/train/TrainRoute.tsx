@@ -96,7 +96,7 @@ function TrainHome({ selectedId, compact }: { selectedId?: string; compact?: boo
           <CardBody className="pt-3">
             {groups.length ? groups.map(g => (
               <section key={g.month} className="mb-2 last:mb-0" aria-label={g.month}>
-                <h3 className="px-1 pt-1 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">{g.month}</h3>
+                <h2 className="px-1 pt-1 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">{g.month}</h2>
                 <ul className="-mx-2 flex flex-col">
                   {g.items.map(s => {
                     const prCount = s.exercises.filter(e => prs.has(s.id + '|' + e.name.toLowerCase())).length;

@@ -70,7 +70,7 @@ export function ActivityPage() {
                 { key: 'pace', label: 'Pace', kind: 'line', color: 'track', format: v => `${fmtDur(v)} /km` },
                 { key: 'sel', label: 'This one', kind: 'dots', color: 'lane', format: v => `${fmtDur(v)} /km` },
               ]}
-              yFormat={v => fmtDur(v)} ariaLabel={`${a.type} pace history`} empty="Needs distance and time to chart pace." />
+              yFormat={v => fmtDur(v)} timeAxis ariaLabel={`${a.type} pace history`} empty="Needs distance and time to chart pace." />
           </CardBody>
         </Card>
         <Card className="lg:col-span-12">

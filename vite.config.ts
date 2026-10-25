@@ -41,7 +41,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'], globIgnores: ['**/*.woff'],
         navigateFallback: 'index.html',
         // Data goes through the GitHub API and is cached by the app itself (localStorage), never by the service worker.
         runtimeCaching: [{ urlPattern: /^https:\/\/api\.github\.com\//, handler: 'NetworkOnly' }],

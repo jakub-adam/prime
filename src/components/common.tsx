@@ -47,7 +47,7 @@ export function useOnline() {
 }
 
 /* ---------- sync chip ---------- */
-export function SyncChip({ className }: { className?: string }) {
+export function SyncChip({ className, rail }: { className?: string; rail?: boolean }) {
   const s = useSnapshot();
   const online = useOnline();
   const pending = engine.pendingCount();
@@ -68,7 +68,7 @@ export function SyncChip({ className }: { className?: string }) {
       className={cn('inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors', tone, className)}
     >
       <Icon aria-hidden className={cn('size-3.5', spin && 'animate-spin')} />
-      <span role="status" aria-live="polite">{label}</span>
+      <span role="status" aria-live="polite" className={cn(rail && 'max-xl:sr-only')}>{label}</span>
       {pending && s.mode === 'github' && s.sync.kind !== 'saving' ? <span className="num rounded-full bg-surface/70 px-1.5 text-xs">{pending}</span> : null}
     </Link>
   );
@@ -179,7 +179,7 @@ export function KV({ k, v, sub }: { k: string; v: ReactNode; sub?: ReactNode }) 
     <div className="min-w-0 rounded-xl bg-surface-2 px-3.5 py-3">
       <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">{k}</div>
       <div className="num mt-0.5 truncate text-[26px] leading-tight font-semibold">{v}</div>
-      {sub ? <div className="truncate text-[13px] text-muted">{sub}</div> : null}
+      {sub ? <div className="line-clamp-2 text-[13px] leading-snug text-muted">{sub}</div> : null}
     </div>
   );
 }

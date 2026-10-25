@@ -83,7 +83,7 @@ test('drill-downs: week strip, workout, activity and metric pages are reachable 
   await setup(page);
   await page.goto('/#/today');
   await waitReady(page);
-  await page.getByRole('link', { name: 'Upper A', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Workout: Upper A' }).first().click();
   await expect(page).toHaveURL(/#\/train\/session\//);
   await expect(page.getByRole('button', { name: 'Repeat this workout' })).toBeVisible();
   await page.goto('/#/today');

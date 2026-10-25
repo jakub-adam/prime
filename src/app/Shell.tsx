@@ -45,11 +45,11 @@ export function ThemeToggle({ className }: { className?: string }) {
 function Sidebar() {
   const { pathname } = useLocation();
   return (
-    <aside className="hidden shrink-0 self-stretch border-r border-line bg-surface/70 md:block md:w-[88px] lg:w-[248px]">
+    <aside className="hidden shrink-0 self-stretch border-r border-line bg-surface/70 md:block md:w-[88px] xl:w-[248px]">
       <div className="sticky top-0 flex h-dvh flex-col">
-      <Link to="/today" className="flex h-[72px] items-center gap-3 px-6 max-lg:justify-center max-lg:px-0" aria-label="Prime home">
+      <Link to="/today" className="flex h-[72px] items-center gap-3 px-6 max-xl:justify-center max-xl:px-0" aria-label="Prime home">
         <BrandMark className="size-9 shrink-0" />
-        <span className="font-display text-[26px] font-bold tracking-wide uppercase max-lg:hidden">Prime</span>
+        <span className="font-display text-[26px] font-bold tracking-wide uppercase max-xl:hidden">Prime</span>
       </Link>
       <nav aria-label="Sections" className="flex flex-1 flex-col gap-1 px-3 pt-2">
         {NAV.map(({ to, label, icon: Icon }, i) => {
@@ -61,7 +61,7 @@ function Sidebar() {
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'relative flex items-center gap-3 rounded-xl font-semibold text-muted transition-colors hover:bg-surface-3/70 hover:text-ink',
-                'h-11 px-3.5 max-lg:h-auto max-lg:flex-col max-lg:gap-1 max-lg:px-1 max-lg:py-2.5 max-lg:text-[11px]',
+                'h-11 px-3.5 max-xl:h-auto max-xl:flex-col max-xl:gap-1 max-xl:px-1 max-xl:py-2.5 max-xl:text-[11px]',
                 active && 'bg-track-soft text-track-ink hover:bg-track-soft hover:text-track-ink',
                 i === NAV.length - 1 && 'mt-auto mb-2',
               )}
@@ -72,8 +72,8 @@ function Sidebar() {
           );
         })}
       </nav>
-      <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-3 max-lg:flex-col max-lg:px-2">
-        <SyncChip />
+      <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-3 max-xl:flex-col max-xl:px-2">
+        <SyncChip rail />
         <ThemeToggle />
       </div>
       </div>
