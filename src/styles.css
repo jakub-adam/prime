@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+/* Prime look: track and field. Condensed scoreboard numerals, cool chalk ground,
+   track-rubber red for energy (kcal) and actions, lane blue for protein and trends. */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  --bg: #eef1f3;
+  --surface: #ffffff;
+  --surface-2: #f5f7f8;
+  --surface-3: #e9edf0;
+  --ink: #141d26;
+  --muted: #55616b;
+  --line: #d8dee3;
+  --line-strong: #c3ccd3;
+  --track: #c63f27;
+  --track-ink: #b0361f;
+  --track-soft: #f8e4df;
+  --lane: #275e8c;
+  --lane-ink: #235580;
+  --lane-soft: #dfeaf4;
+  --good: #1f7044;
+  --good-soft: #dcf0e4;
+  --warn: #8a5d08;
+  --warn-soft: #f7ecd2;
+  --bad: #ad3131;
+  --bad-soft: #f7dfdf;
+  --on-accent: #ffffff;
+  --focus: #275e8c;
+  --chart-grid: #e3e8ec;
+  --shadow-card: 0 1px 2px rgb(20 29 38 / 0.05), 0 2px 8px -2px rgb(20 29 38 / 0.06), 0 12px 32px -12px rgb(20 29 38 / 0.10);
+  --shadow-pop: 0 8px 28px -6px rgb(20 29 38 / 0.22), 0 2px 6px rgb(20 29 38 / 0.08);
+  color-scheme: light;
+}
+[data-theme='dark'] {
+  --bg: #0f151b;
+  --surface: #172029;
+  --surface-2: #1c2731;
+  --surface-3: #23303b;
+  --ink: #e6ecf1;
+  --muted: #9dabb7;
+  --line: #27333e;
+  --line-strong: #364552;
+  --track: #ee7b5e;
+  --track-ink: #f28b70;
+  --track-soft: #3a231e;
+  --lane: #80b3de;
+  --lane-ink: #8fbde4;
+  --lane-soft: #1d3142;
+  --good: #6cc592;
+  --good-soft: #193526;
+  --warn: #e0b257;
+  --warn-soft: #3a2f17;
+  --bad: #f08c8c;
+  --bad-soft: #3d2022;
+  --on-accent: #16100e;
+  --focus: #8fbde4;
+  --chart-grid: #24303b;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -12px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 12px 36px -8px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-track: var(--track);
+  --color-track-ink: var(--track-ink);
+  --color-track-soft: var(--track-soft);
+  --color-lane: var(--lane);
+  --color-lane-ink: var(--lane-ink);
+  --color-lane-soft: var(--lane-soft);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-on-accent: var(--on-accent);
+  --color-focus: var(--focus);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+  --font-sans: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --radius-card: 14px;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100dvh;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .num {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+  input[type='number'] { -moz-appearance: textfield; }
+  input[type='number']::-webkit-inner-spin-button, input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  ::selection { background: var(--lane-soft); }
+}
+
+@layer utilities {
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  /* Lane lines: subtle track texture used on progress bars. */
+  .lane-track { background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--line) calc(25% - 1px) 25%), var(--surface-3); }
+}
+
+/* Recharts: inherit theme */
+.recharts-cartesian-axis-tick-value { fill: var(--muted); font-size: 12px; font-family: var(--font-sans); }
+.recharts-cartesian-grid line { stroke: var(--chart-grid); }
+.recharts-reference-line-line { stroke: var(--muted); }
+.recharts-surface:focus, .recharts-wrapper:focus { outline: none; }
+.recharts-wrapper:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.97); } }
