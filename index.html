@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prime</title>
+<meta name="description" content="Food, training, body and activity in one place.">
+<meta name="theme-color" content="#eef1f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11171d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Prime">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="bar-top">
+  <div class="bar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Prime</span>
+    </div>
+    <div class="top-right">
+      <span id="sync" class="sync" role="status" aria-live="polite"></span>
+      <a href="#settings" class="icon-btn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8.6 4.9-.1-2.8 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2.4-1.4L15.3 2h-4l-.4 2.6a8 8 0 0 0-2.4 1.4L6 5.1 4 8.5l2 1.6a8 8 0 0 0 0 2.8l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2.4 1.4l.4 2.6h4l.4-2.6a8 8 0 0 0 2.4-1.4l2.4.9 2-3.4-2-1.6Z"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<div id="banner" class="banner" hidden></div>
+
+<main id="view" class="view" tabindex="-1"></main>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="tabs-inner">
+    <a href="#today" data-tab="today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z"/></svg><span>Today</span></a>
+    <a href="#food" data-tab="food"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1-3 4-3 7h3v11"/></svg><span>Food</span></a>
+    <a href="#train" data-tab="train"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><span>Train</span></a>
+    <a href="#body" data-tab="body"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14l-1.5-12h-11zM9 8a3 3 0 0 1 6 0M12 13l2-2"/></svg><span>Body</span></a>
+    <a href="#move" data-tab="move"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4.5a1.5 1.5 0 1 0 0 .01M9 21l2.5-6 3 2v4M7 12l3-4 4 2 2 3h3M11.5 15 10 9"/></svg><span>Move</span></a>
+  </div>
+</nav>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
