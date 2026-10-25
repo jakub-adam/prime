@@ -1,0 +1,41 @@
+{
+ "days": {
+  "2026-10-18": {
+   "steps": 4100,
+   "distanceKm": 3.05,
+   "activeKcal": 543,
+   "exerciseMin": 41,
+   "restingHr": 71.0,
+   "hrv": 56.7,
+   "walkingHr": 118.0,
+   "sleepH": 7.37
+  },
+  "2026-10-19": {
+   "steps": 8812,
+   "distanceKm": 6.6,
+   "restingHr": 68.0,
+   "vo2max": 39.3,
+   "weightKg": 86.4,
+   "sleepH": 6.6
+  }
+ },
+ "workouts": [
+  {
+   "type": "Running",
+   "start": "2026-10-18 07:05:12 +0200",
+   "durationMin": 31.9,
+   "distanceKm": 5.18,
+   "activeKcal": 402,
+   "avgHr": 158
+  },
+  {
+   "type": "TraditionalStrengthTraining",
+   "start": "2026-10-19 17:00:00 +0200",
+   "durationMin": 62.0,
+   "distanceKm": null,
+   "activeKcal": 289,
+   "avgHr": null
+  }
+ ],
+ "importedAt": "2026-10-25T12:36:27+01:00"
+}
