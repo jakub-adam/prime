@@ -32,7 +32,7 @@ All tests use an in-memory mock of the GitHub API (`tests/mock-github.ts`) and s
 
 ## Deploy
 
-Pushing to `main` runs `.github/workflows/deploy.yml`: type-check, unit tests, build, then publish `dist/` to GitHub Pages. `public/CNAME` keeps the custom domain. The repo's Pages source must be set to **GitHub Actions** (Settings → Pages → Build and deployment → Source).
+Pushing to `main` runs `.github/workflows/deploy.yml`: type-check, unit tests, build, then publish `dist/` to GitHub Pages. The repo's Pages source must be set to **GitHub Actions** (Settings → Pages → Build and deployment → Source), and the custom domain `prime.jakubadam.com` is set in Settings → Pages → Custom domain. GitHub ignores CNAME files for Actions deployments; `public/CNAME` is kept only as a record of the domain.
 
 ## How it's built
 
