@@ -58,7 +58,7 @@ export function MeasurementsPage() {
   const [deleting, setDeleting] = useState<Measurement | null>(null);
   return (
     <div>
-      <PageHeader back="/body" kicker="Body" title="Measurements" actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus /> Add measurements</Button>} />
+      <PageHeader back="/health/body" kicker="Body Measurements" title="Measurements" actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus /> Add measurements</Button>} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Card className="lg:col-span-5">
           <CardHeader title="Change since first" />

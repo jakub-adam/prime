@@ -1,4 +1,4 @@
-import { Dumbbell, Footprints, Play, Plus, Timer, UtensilsCrossed } from 'lucide-react';
+import { Dumbbell, Footprints, HeartPulse, Play, Plus, Timer, UtensilsCrossed } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useData, useDraft, useGoals, useHealthDays, useToday } from '@/app/store';
@@ -14,8 +14,12 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { useIsDesktop } from '@/components/ui/sheet';
 import { WeekStrip } from '@/components/WeekStrip';
 import { MealSheet } from '@/features/food/MealSheet';
+import { metricHref, shortLabel } from '@/features/health/health-ui';
 import { StartWorkoutSheet } from '@/features/train/StartWorkoutSheet';
 import { cn, fmt, signed } from '@/lib/utils';
+
+/** Health metrics shown on Today, in order, when they have data. */
+const TODAY_METRICS: MetricKey[] = ['stress', 'restingHr', 'hrv', 'activeKcal', 'spo2', 'respiratoryRate'];
 
 export function useMetricTile(key: MetricKey) {
   const days = useHealthDays();
@@ -32,12 +36,12 @@ export function MetricTile({ k, className }: { k: MetricKey; className?: string 
   const t = useMetricTile(k);
   return (
     <StatTile
-      to={`/metric/${k}`}
-      label={t.def.label}
+      to={metricHref(k)}
+      label={shortLabel(k)}
       value={t.avg == null ? '–' : fmt(t.avg, t.def.dp)}
       unit={t.def.unit === 'steps' || t.def.unit === 'score' ? undefined : t.def.unit}
       sub={t.last ? `${k === 'stress' && t.avg != null ? `${STRESS_LABEL[stressLevel(t.avg)]} · ` : ''}7-day avg · to ${fmtShort(t.last)}` : 'Import Apple Health'}
-      chart={<Sparkline values={t.spark} color={t.def.color} kind={t.def.chart} className="h-7 w-full" />}
+      chart={<Sparkline values={t.spark} color={k === 'stress' ? 'track' : t.def.category} kind={t.def.chart === 'bar' ? 'bar' : 'line'} className="h-7 w-full" />}
       className={className}
     />
   );
@@ -51,7 +55,7 @@ export function WeightTile({ className }: { className?: string }) {
   const spark = ws.slice(-14).map(p => p.kg);
   return (
     <StatTile
-      to="/body/weight"
+      to="/health/weight"
       label="Weight"
       value={now ? fmt(now, 1) : '–'}
       unit="kg"
@@ -153,18 +157,18 @@ function TrendCharts() {
   const now = rollingAvg(ws, today);
   return (
     <>
-      <TrendCard title="Weight" to="/body/weight" className="lg:col-span-4" meta={now ? `${fmt(now, 1)} kg avg · ${fmt(Math.max(0, now - g.goalWeight), 1)} kg to ${fmt(g.goalWeight)}` : 'Last 30 days'}>
+      <TrendCard title="Weight" to="/health/weight" className="lg:col-span-4" meta={now ? `${fmt(now, 1)} kg avg · ${fmt(Math.max(0, now - g.goalWeight), 1)} kg to ${fmt(g.goalWeight)}` : 'Last 30 days'}>
         <TimeChart data={weightRows} height={190} ariaLabel="Bodyweight over the last 30 days with 7-day average"
           series={[{ key: 'kg', label: 'Weigh-in', kind: 'dots', color: 'lane', format: v => `${fmt(v, 1)} kg` }, { key: 'avg', label: '7-day avg', kind: 'line', color: 'lane', format: v => `${fmt(v, 1)} kg` }]}
           empty="Log weigh-ins to see your trend." />
         <div className="mt-2"><Legend items={[{ label: 'Weigh-in', color: 'lane', kind: 'dot' }, { label: '7-day average', color: 'lane', kind: 'line' }]} /></div>
       </TrendCard>
-      <TrendCard title="Steps" to="/metric/steps" className="lg:col-span-4" meta={`Last 14 days · goal ${fmt(g.stepsGoal)}`}>
+      <TrendCard title="Steps" to="/health/metric/steps" className="lg:col-span-4" meta={`Last 14 days · goal ${fmt(g.stepsGoal)}`}>
         <TimeChart data={steps} height={190} zero ariaLabel="Daily steps for the last 14 days" goal={{ value: g.stepsGoal, label: fmt(g.stepsGoal) }}
           series={[{ key: 'steps', label: 'Steps', kind: 'bar', color: 'lane', format: v => fmt(v), colorAt: v => (v >= g.stepsGoal ? 'lane' : 'muted') }]}
           yFormat={v => (v >= 1000 ? `${v / 1000}k` : String(v))} empty="Import Apple Health to see steps." />
       </TrendCard>
-      <TrendCard title="Sleep" to="/metric/sleepH" className="lg:col-span-4" meta={`Last 14 nights · goal ${fmt(g.sleepGoalH, 1)} h`}>
+      <TrendCard title="Sleep" to="/health/sleep" className="lg:col-span-4" meta={`Last 14 nights · goal ${fmt(g.sleepGoalH, 1)} h`}>
         <TimeChart data={sleep} height={190} zero ariaLabel="Nightly sleep for the last 14 nights" goal={{ value: g.sleepGoalH, label: `${fmt(g.sleepGoalH)} h` }}
           series={[{ key: 'sleepH', label: 'Sleep', kind: 'bar', color: 'lane', format: v => `${fmt(v, 1)} h`, colorAt: v => (v >= g.sleepGoalH ? 'lane' : 'muted') }]}
           empty="Import Apple Health to see sleep." />
@@ -178,7 +182,7 @@ function RecentWorkouts({ className }: { className?: string }) {
   const today = useToday();
   const items = useMemo(() => {
     const s = data.training.sessions.map(x => ({ date: x.date, id: x.id, to: `/train/session/${encodeURIComponent(x.id)}`, title: x.name, sub: `${x.exercises.length} exercises · ${sessionSets(x)} sets`, kind: 'session' as const }));
-    const a = allActivities(data).map(x => ({ date: x.date, id: x.id, to: `/move/activity/${encodeURIComponent(x.id)}`, title: activityLabel(x), sub: [fmtDur(x.durationSec), x.source === 'Apple Watch' || x.merged ? 'Apple Watch' : null].filter(Boolean).join(' · '), kind: 'activity' as const }));
+    const a = allActivities(data).map(x => ({ date: x.date, id: x.id, to: `/health/workout/${encodeURIComponent(x.id)}`, title: activityLabel(x), sub: [fmtDur(x.durationSec), x.source === 'Apple Watch' || x.merged ? 'Apple Watch' : null].filter(Boolean).join(' · '), kind: 'activity' as const }));
     return [...s, ...a].sort(byDateDesc).slice(0, 6);
   }, [data]);
   return (
@@ -228,13 +232,13 @@ function TenKCard({ className }: { className?: string }) {
             <div className="lane-track relative mt-3 h-2.5 overflow-hidden rounded-full" aria-hidden>
               <div className="absolute inset-y-0 left-0 rounded-full bg-track" style={{ width: `${Math.max(4, Math.min(100, (goalSec / proj.sec) * 100))}%` }} />
             </div>
-            <Link to={`/move/activity/${encodeURIComponent(proj.from.id)}`} className="mt-3 text-[13px] text-muted hover:text-ink hover:underline">
+            <Link to={`/health/workout/${encodeURIComponent(proj.from.id)}`} className="mt-3 text-[13px] text-muted hover:text-ink hover:underline">
               From {activityLabel(proj.from)} on {fmtShort(proj.from.date)} (Riegel)
             </Link>
           </>
         ) : <p className="mt-2 text-sm text-muted">Log a run of 2 km or more in the last 6 weeks to get a projection.</p>}
         <div className="mt-auto pt-3">
-          <Button asChild variant="secondary" size="sm" className="w-full"><Link to="/move"><Timer /> Runs and pace</Link></Button>
+          <Button asChild variant="secondary" size="sm" className="w-full"><Link to="/health/workouts"><Timer /> Runs and pace</Link></Button>
         </div>
       </CardBody>
     </Card>
@@ -246,7 +250,7 @@ export function TodayPage() {
   const desktop = useIsDesktop();
   const healthDays = useHealthDays();
   const metrics = presentMetrics(healthDays);
-  const extra = metrics.filter(k => k !== 'steps' && k !== 'sleepH');
+  const extra = TODAY_METRICS.filter(k => metrics.includes(k));
   return (
     <div>
       <PageHeader kicker={fmtLong(today)} title="Today" />
@@ -258,7 +262,10 @@ export function TodayPage() {
             <WeightTile />
             <MetricTile k="steps" />
             <MetricTile k="sleepH" />
-            {extra.map(k => <MetricTile key={k} k={k} />)}
+            {extra.slice(0, 3).map(k => <MetricTile key={k} k={k} />)}
+            <Link to="/health" className="flex min-h-[124px] flex-col items-center justify-center gap-1 rounded-card border border-dashed border-line-strong text-sm font-semibold text-lane-ink hover:bg-surface-2">
+              <HeartPulse aria-hidden className="size-6" /> All health data
+            </Link>
           </div>
         )}
         <RecentWorkouts className="lg:col-span-6 xl:col-span-5" />
@@ -266,7 +273,7 @@ export function TodayPage() {
         {desktop ? (
           <div className="grid grid-cols-3 content-start gap-3 lg:col-span-12 xl:col-span-4 xl:grid-cols-2">
             {extra.length ? extra.slice(0, 6).map(k => <MetricTile key={k} k={k} />) : (
-              <Card className="col-span-2"><CardBody className="pt-4"><EmptyState title="More health metrics" action={<Button asChild size="sm"><Link to="/settings">Import Apple Health</Link></Button>}>Resting heart rate, HRV, active energy and more appear here after an Apple Health import.</EmptyState></CardBody></Card>
+              <Card className="col-span-2"><CardBody className="pt-4"><EmptyState title="More health metrics" action={<Button asChild size="sm"><Link to="/health">Import Apple Health</Link></Button>}>Resting heart rate, HRV, active energy and more appear here after an Apple Health import.</EmptyState></CardBody></Card>
             )}
           </div>
         ) : null}

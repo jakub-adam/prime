@@ -21,16 +21,48 @@ export function sampleData(t = todayStr()): DataFiles {
     });
     if (rnd() > 0.2) d.body.weighins.push({ id: `${day}_w`, date: day, kg: Math.round((87.6 - (34 - i) * 0.07 + (rnd() - 0.5) * 1.2) * 10) / 10 });
     const steps = Math.round(4000 + rnd() * 9000);
+    const r2 = (v: number) => Math.round(v * 100) / 100, r1 = (v: number) => Math.round(v * 10) / 10;
+    const sleepH = r2(5.5 + rnd() * 2.5);
+    const deep = r2(sleepH * (0.12 + rnd() * 0.06)), rem = r2(sleepH * (0.2 + rnd() * 0.06));
+    const bed = -Math.round(20 + rnd() * 90);
+    const restingHr = Math.round(66 + rnd() * 16);
     d.health.days[day] = {
       steps,
-      distanceKm: Math.round(steps * 0.00078 * 100) / 100,
+      distanceKm: r2(steps * 0.00078),
+      flights: Math.round(2 + rnd() * 14),
       activeKcal: Math.round(250 + rnd() * 600),
+      basalKcal: Math.round(1780 + rnd() * 60),
       exerciseMin: Math.round(10 + rnd() * 60),
-      sleepH: Math.round((5.5 + rnd() * 2.5) * 100) / 100,
-      restingHr: Math.round(66 + rnd() * 16),
-      hrv: Math.round((40 + rnd() * 40) * 10) / 10,
+      standHours: Math.round(6 + rnd() * 8),
+      standMin: Math.round(60 + rnd() * 120),
+      daylightMin: Math.round(10 + rnd() * 80),
+      ...(i % 6 === 2 ? { mindfulMin: Math.round(5 + rnd() * 10) } : {}),
+      ...(i % 5 === 1 ? { cyclingKm: r2(4 + rnd() * 10) } : {}),
+      sleepH,
+      sleepDeepH: deep,
+      sleepRemH: rem,
+      sleepCoreH: r2(sleepH - deep - rem),
+      sleepAwakeH: r2(0.2 + rnd() * 0.5),
+      sleepStartMin: bed,
+      sleepEndMin: Math.round(bed + sleepH * 60 + 30),
+      hrAvg: Math.round(78 + rnd() * 10),
+      hrMin: Math.round(48 + rnd() * 8),
+      hrMax: Math.round(140 + rnd() * 40),
+      restingHr,
+      hrv: r1(40 + rnd() * 40),
       walkingHr: Math.round(105 + rnd() * 25),
-      ...(i % 4 === 0 ? { vo2max: Math.round((37 + (34 - i) * 0.05 + rnd()) * 10) / 10 } : {}),
+      ...(i % 3 === 0 ? { hrRecovery: Math.round(20 + rnd() * 12) } : {}),
+      respiratoryRate: r1(13.5 + rnd() * 3),
+      spo2: Math.round(95 + rnd() * 4),
+      wristTempC: r1(35.3 + rnd() * 0.8),
+      walkingSpeed: r1(4.6 + rnd() * 0.9),
+      stepLengthCm: Math.round(68 + rnd() * 8),
+      walkingAsymmetry: r1(rnd() * 4),
+      doubleSupport: r1(25 + rnd() * 5),
+      envAudioDb: Math.round(58 + rnd() * 18),
+      headphoneDb: Math.round(55 + rnd() * 20),
+      ...(i % 4 === 0 ? { vo2max: r1(37 + (34 - i) * 0.05 + rnd()) } : {}),
+      ...(i % 7 === 0 ? { bodyFatPct: r1(19.4 - (34 - i) * 0.03 + rnd() * 0.4) } : {}),
     };
   }
   const plan: [string, [string, ExerciseKind, number, number][]][] = [

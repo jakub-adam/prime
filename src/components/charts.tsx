@@ -7,14 +7,23 @@ import {
 import { fmtDay, fmtShort } from '@/core/dates';
 import { cn } from '@/lib/utils';
 
-export type ChartColor = 'track' | 'lane' | 'muted' | 'good';
-const COLOR: Record<ChartColor, string> = { track: 'var(--track)', lane: 'var(--lane)', muted: 'var(--muted)', good: 'var(--good)' };
+export type ChartColor = 'track' | 'lane' | 'muted' | 'good' | 'ink'
+  | 'activity' | 'body' | 'heart' | 'mind' | 'sleep' | 'respiratory' | 'mobility' | 'hearing'
+  | 'awake' | 'rem' | 'core' | 'deep';
+export const COLOR: Record<ChartColor, string> = {
+  track: 'var(--track)', lane: 'var(--lane)', muted: 'var(--muted)', good: 'var(--good)', ink: 'var(--ink)',
+  activity: 'var(--cat-activity)', body: 'var(--cat-body)', heart: 'var(--cat-heart)', mind: 'var(--cat-mind)',
+  sleep: 'var(--cat-sleep)', respiratory: 'var(--cat-respiratory)', mobility: 'var(--cat-mobility)', hearing: 'var(--cat-hearing)',
+  awake: 'var(--stage-awake)', rem: 'var(--stage-rem)', core: 'var(--stage-core)', deep: 'var(--stage-deep)',
+};
 
 export type Series = {
   key: string;
   label: string;
-  kind: 'bar' | 'line' | 'dots';
+  kind: 'bar' | 'line' | 'dots' | 'range';
   color: ChartColor;
+  /** for kind 'range': the key holding the top of the bar (key holds the bottom) */
+  key2?: string;
   format?: (v: number) => string;
   /** per-point colour for bars */
   colorAt?: (v: number, i: number) => ChartColor;
@@ -43,7 +52,7 @@ function niceDomain(values: number[], zero: boolean, time = false): number[] {
 function ChartTooltip({ active, payload, label, series }: TooltipContentProps<number, string> & { series: Series[] }) {
   if (!active || !payload?.length) return null;
   const rows = series
-    .map(s => ({ s, v: payload.find(p => p.dataKey === s.key)?.value as number | null | undefined }))
+    .map(s => ({ s, v: payload.find(p => p.name === s.label)?.value as number | [number, number] | null | undefined }))
     .filter(r => r.v != null);
   if (!rows.length) return null;
   return (
@@ -55,7 +64,9 @@ function ChartTooltip({ active, payload, label, series }: TooltipContentProps<nu
             <span aria-hidden className={cn('inline-block size-2.5', s.kind === 'line' ? 'h-0.5 w-3 rounded' : 'rounded-full')} style={{ background: COLOR[s.color] }} />
             {s.label}
           </span>
-          <span className="num text-[15px] font-semibold">{s.format ? s.format(v!) : v}</span>
+          <span className="num text-[15px] font-semibold">
+            {Array.isArray(v) ? `${s.format ? s.format(v[0]) : v[0]}–${s.format ? s.format(v[1]) : v[1]}` : s.format ? s.format(v!) : v}
+          </span>
         </div>
       ))}
     </div>
@@ -79,7 +90,7 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
   maxY?: number;
 }) {
   const reduced = useReducedMotion();
-  const values = data.flatMap(r => series.map(s => r[s.key])).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const values = data.flatMap(r => series.flatMap(s => [r[s.key], s.key2 ? r[s.key2] : null])).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
   if (!values.length) {
     return (
       <div className={cn('grid place-items-center rounded-xl border border-dashed border-line-strong/70 px-4 text-center text-sm text-muted', className)} style={{ height }}>
@@ -121,10 +132,16 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
                 </Bar>
               );
             }
+            if (s.kind === 'range') {
+              return (
+                <Bar key={s.key} name={s.label} fill={COLOR[s.color]} fillOpacity={0.55} radius={4} maxBarSize={many ? 8 : 14} isAnimationActive={!reduced}
+                  dataKey={(r: Row) => (typeof r[s.key] === 'number' && typeof r[s.key2!] === 'number' ? [r[s.key], r[s.key2!]] : null)} />
+              );
+            }
             if (s.kind === 'dots') {
               return (
                 <Line key={s.key} dataKey={s.key} name={s.label} stroke="none" isAnimationActive={false} legendType="circle"
-                  dot={{ r: many ? 2.5 : 3.5, fill: COLOR[s.color], fillOpacity: 0.45, stroke: 'none' }}
+                  dot={{ r: many ? 2.5 : 3.5, fill: COLOR[s.color], fillOpacity: s.color === 'ink' ? 0.9 : 0.45, stroke: 'none' }}
                   activeDot={{ r: 5, fill: COLOR[s.color], stroke: 'var(--surface)', strokeWidth: 2 }} />
               );
             }

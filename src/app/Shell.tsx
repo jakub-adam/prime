@@ -1,4 +1,4 @@
-import { Dumbbell, Footprints, House, Monitor, Moon, Scale, Settings, Sun, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { Dumbbell, HeartPulse, House, Monitor, Moon, Settings, Sun, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router';
@@ -12,11 +12,10 @@ export const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/today', label: 'Today', icon: House },
   { to: '/food', label: 'Food', icon: UtensilsCrossed },
   { to: '/train', label: 'Train', icon: Dumbbell },
-  { to: '/body', label: 'Body', icon: Scale },
-  { to: '/move', label: 'Move', icon: Footprints },
+  { to: '/health', label: 'Health', icon: HeartPulse },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
-const isActive = (pathname: string, to: string) => pathname === to || pathname.startsWith(to + '/') || (to === '/move' && pathname.startsWith('/metric/'));
+const isActive = (pathname: string, to: string) => pathname === to || pathname.startsWith(to + '/');
 
 function BrandMark({ className }: { className?: string }) {
   return (
@@ -102,7 +101,7 @@ function TabBar() {
   const { pathname } = useLocation();
   return (
     <nav aria-label="Sections" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/92 backdrop-blur-md pb-safe md:hidden">
-      <div className="mx-auto grid max-w-xl grid-cols-[repeat(5,1fr)_0.78fr] pl-safe pr-safe">
+      <div className="mx-auto grid max-w-xl grid-cols-[repeat(4,1fr)_0.85fr] pl-safe pr-safe">
         {NAV.map(({ to, label, icon: Icon }) => {
           const active = isActive(pathname, to);
           return (

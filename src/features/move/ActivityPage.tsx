@@ -36,7 +36,7 @@ export function ActivityPage() {
 
   return (
     <div>
-      <PageHeader back="/move" kicker={`${fmtDay(a.date)} · ${fmtRelative(a.date, today)}`} title={a.distanceKm ? `${a.type} ${fmt(a.distanceKm, 1)} km` : a.type}
+      <PageHeader back="/health/workouts" kicker={`${fmtDay(a.date)} · ${fmtRelative(a.date, today)}`} title={a.distanceKm ? `${a.type} ${fmt(a.distanceKm, 1)} km` : a.type}
         actions={logged ? <>
           <Button variant="secondary" onClick={() => setEditing(true)}><Pencil /> Edit</Button>
           <Button variant="danger-ghost" onClick={() => setDeleting(true)}><Trash2 /> Delete</Button>
@@ -87,7 +87,7 @@ export function ActivityPage() {
       </div>
       {logged ? <ActivitySheet open={editing} onOpenChange={setEditing} activity={logged} /> : null}
       <Confirm open={deleting} onOpenChange={setDeleting} title="Delete this activity?" description={`${a.type} on ${fmtDay(a.date)}.`}
-        onConfirm={() => { engine.commit('activities', [{ t: 'remove', c: 'activities', id: a.id }], 'Activity deleted'); nav('/move', { replace: true }); }} />
+        onConfirm={() => { engine.commit('activities', [{ t: 'remove', c: 'activities', id: a.id }], 'Activity deleted'); nav('/health/workouts', { replace: true }); }} />
     </div>
   );
 }

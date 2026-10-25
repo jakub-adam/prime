@@ -277,38 +277,95 @@ export function weekStrip(data: DataFiles, monday: string, today: string): WeekD
   return range(monday, 7).map(date => {
     const items: WeekItem[] = [
       ...data.training.sessions.filter(s => s.date === date).map(s => ({ kind: 'session' as const, id: s.id, label: s.name, href: `/train/session/${encodeURIComponent(s.id)}` })),
-      ...acts.filter(a => a.date === date).map(a => ({ kind: 'activity' as const, id: a.id, label: activityLabel(a), href: `/move/activity/${encodeURIComponent(a.id)}` })),
+      ...acts.filter(a => a.date === date).map(a => ({ kind: 'activity' as const, id: a.id, label: activityLabel(a), href: `/health/workout/${encodeURIComponent(a.id)}` })),
     ];
     const state = items.length ? 'logged' : date < today ? 'rest' : 'empty';
     return { date, items, state, isToday: date === today, isFuture: date > today };
   });
 }
 
-/* ---------- Apple Health daily metrics ---------- */
-export type MetricKey = 'steps' | 'sleepH' | 'restingHr' | 'hrv' | 'activeKcal' | 'distanceKm' | 'exerciseMin' | 'walkingHr' | 'vo2max' | 'stress';
+/* ---------- Apple Health daily metrics, grouped like the Health app ---------- */
+export type CategoryKey = 'activity' | 'body' | 'heart' | 'mind' | 'sleep' | 'respiratory' | 'mobility' | 'hearing';
+export type MetricKey =
+  | 'steps' | 'distanceKm' | 'flights' | 'activeKcal' | 'basalKcal' | 'exerciseMin' | 'standHours' | 'standMin' | 'cyclingKm'
+  | 'bodyFatPct' | 'wristTempC'
+  | 'hrAvg' | 'restingHr' | 'walkingHr' | 'hrv' | 'hrRecovery' | 'vo2max'
+  | 'stress' | 'mindfulMin' | 'daylightMin'
+  | 'sleepH'
+  | 'respiratoryRate' | 'spo2'
+  | 'walkingSpeed' | 'stepLengthCm' | 'walkingAsymmetry' | 'doubleSupport' | 'sixMinWalkM'
+  | 'envAudioDb' | 'headphoneDb';
+
 export type MetricDef = {
   key: MetricKey;
   label: string;
   unit: string;
   dp: number;
-  chart: 'bar' | 'line';
-  color: 'track' | 'lane';
+  /** range = daily min–max with the average (heart rate) */
+  chart: 'bar' | 'line' | 'range';
+  category: CategoryKey;
+  /** how days combine into a week: summed totals are shown as a daily average either way */
   higherIsBetter: boolean | null;
   blurb: string;
 };
+
+const M = (key: MetricKey, label: string, unit: string, dp: number, chart: MetricDef['chart'], category: CategoryKey, higherIsBetter: boolean | null, blurb: string): MetricDef =>
+  ({ key, label, unit, dp, chart, category, higherIsBetter, blurb });
+
 export const METRICS: Record<MetricKey, MetricDef> = {
-  steps: { key: 'steps', label: 'Steps', unit: 'steps', dp: 0, chart: 'bar', color: 'lane', higherIsBetter: true, blurb: 'Daily step count, the larger of iPhone and Watch.' },
-  sleepH: { key: 'sleepH', label: 'Sleep', unit: 'h', dp: 1, chart: 'bar', color: 'lane', higherIsBetter: true, blurb: 'Time asleep, credited to the morning you woke up.' },
-  restingHr: { key: 'restingHr', label: 'Resting HR', unit: 'bpm', dp: 0, chart: 'line', color: 'track', higherIsBetter: false, blurb: 'A rising resting heart rate over several days can mean you need more rest.' },
-  hrv: { key: 'hrv', label: 'HRV', unit: 'ms', dp: 0, chart: 'line', color: 'lane', higherIsBetter: true, blurb: 'Heart rate variability (SDNN). Compare against your own baseline, not others.' },
-  activeKcal: { key: 'activeKcal', label: 'Active energy', unit: 'kcal', dp: 0, chart: 'bar', color: 'track', higherIsBetter: true, blurb: 'Calories burned through movement, on top of resting energy.' },
-  distanceKm: { key: 'distanceKm', label: 'Distance', unit: 'km', dp: 1, chart: 'bar', color: 'lane', higherIsBetter: true, blurb: 'Walking and running distance for the day.' },
-  exerciseMin: { key: 'exerciseMin', label: 'Exercise', unit: 'min', dp: 0, chart: 'bar', color: 'track', higherIsBetter: true, blurb: 'Apple Exercise minutes (brisk movement or workouts).' },
-  walkingHr: { key: 'walkingHr', label: 'Walking HR', unit: 'bpm', dp: 0, chart: 'line', color: 'track', higherIsBetter: false, blurb: 'Average heart rate while walking. Drops as fitness improves.' },
-  stress: { key: 'stress', label: 'Stress', unit: 'score', dp: 0, chart: 'bar', color: 'track', higherIsBetter: false, blurb: 'An estimate, not a measurement: Apple Watch does not record stress. Calculated each day from HRV and resting heart rate against your own previous 4 weeks. 50 is your normal; higher means lower HRV and/or higher resting HR than usual.' },
-  vo2max: { key: 'vo2max', label: 'VO₂ max', unit: 'ml/kg/min', dp: 1, chart: 'line', color: 'lane', higherIsBetter: true, blurb: 'Apple Watch cardio fitness estimate from outdoor walks and runs.' },
+  steps: M('steps', 'Steps', 'steps', 0, 'bar', 'activity', true, 'Daily step count, the larger of iPhone and Watch.'),
+  distanceKm: M('distanceKm', 'Walking + running distance', 'km', 1, 'bar', 'activity', true, 'Distance walked and run during the day.'),
+  flights: M('flights', 'Flights climbed', 'floors', 0, 'bar', 'activity', true, 'One flight is about 3 m (10 ft) of elevation gained on foot.'),
+  activeKcal: M('activeKcal', 'Active energy', 'kcal', 0, 'bar', 'activity', true, 'Energy burned through movement, on top of resting energy. This is the Move ring.'),
+  basalKcal: M('basalKcal', 'Resting energy', 'kcal', 0, 'bar', 'activity', null, 'Energy your body uses at rest, estimated by Apple Watch from your profile and heart rate.'),
+  exerciseMin: M('exerciseMin', 'Exercise minutes', 'min', 0, 'bar', 'activity', true, 'Minutes of brisk activity or workouts. This is the Exercise ring.'),
+  standHours: M('standHours', 'Stand hours', 'h', 0, 'bar', 'activity', true, 'Hours in which you stood and moved for at least a minute. This is the Stand ring.'),
+  standMin: M('standMin', 'Stand minutes', 'min', 0, 'bar', 'activity', true, 'Total minutes standing and moving.'),
+  cyclingKm: M('cyclingKm', 'Cycling distance', 'km', 1, 'bar', 'activity', true, 'Distance cycled, from workouts and the Watch.'),
+
+  bodyFatPct: M('bodyFatPct', 'Body fat', '%', 1, 'line', 'body', false, 'Body fat percentage from a smart scale or manual entry.'),
+  wristTempC: M('wristTempC', 'Sleeping wrist temperature', '°C', 1, 'line', 'body', null, 'Wrist temperature measured during sleep. Changes from your normal matter more than the number itself.'),
+
+  hrAvg: M('hrAvg', 'Heart rate', 'bpm', 0, 'range', 'heart', null, 'Daily range from lowest to highest heart rate, with the average of all readings.'),
+  restingHr: M('restingHr', 'Resting heart rate', 'bpm', 0, 'line', 'heart', false, 'Your heart rate at rest. A rising trend over several days can mean you need more recovery.'),
+  walkingHr: M('walkingHr', 'Walking heart rate', 'bpm', 0, 'line', 'heart', false, 'Average heart rate while walking. It drops as fitness improves.'),
+  hrv: M('hrv', 'Heart rate variability', 'ms', 0, 'line', 'heart', true, 'Variation between heartbeats (SDNN). Higher is generally better; compare with your own baseline, not others.'),
+  hrRecovery: M('hrRecovery', 'Cardio recovery', 'bpm', 0, 'line', 'heart', true, 'How much your heart rate drops in the first minute after a workout. Higher means fitter.'),
+  vo2max: M('vo2max', 'Cardio fitness (VO₂ max)', 'ml/kg/min', 1, 'line', 'heart', true, 'Apple Watch estimate of maximal oxygen uptake from outdoor walks and runs.'),
+
+  stress: M('stress', 'Stress', 'score', 0, 'bar', 'mind', false, 'An estimate, not a measurement: Apple Watch does not record stress. Calculated each day from HRV and resting heart rate against your own previous 4 weeks. 50 is your normal; higher means lower HRV and/or higher resting HR than usual.'),
+  mindfulMin: M('mindfulMin', 'Mindful minutes', 'min', 0, 'bar', 'mind', true, 'Time in breathing and reflection sessions (Mindfulness app or other apps).'),
+  daylightMin: M('daylightMin', 'Time in daylight', 'min', 0, 'bar', 'mind', true, 'Minutes outdoors in daylight, measured by Apple Watch. Daylight supports sleep and mood.'),
+
+  sleepH: M('sleepH', 'Sleep', 'h', 1, 'bar', 'sleep', true, 'Time asleep, credited to the morning you woke up.'),
+
+  respiratoryRate: M('respiratoryRate', 'Respiratory rate', 'breaths/min', 1, 'line', 'respiratory', null, 'Breaths per minute, measured while you sleep.'),
+  spo2: M('spo2', 'Blood oxygen', '%', 0, 'line', 'respiratory', true, 'Oxygen saturation measured by Apple Watch. 95–100% is typical at rest.'),
+
+  walkingSpeed: M('walkingSpeed', 'Walking speed', 'km/h', 1, 'line', 'mobility', true, 'Average speed when walking steadily on flat ground, measured by iPhone.'),
+  stepLengthCm: M('stepLengthCm', 'Walking step length', 'cm', 0, 'line', 'mobility', null, 'Distance between your feet when walking steadily.'),
+  walkingAsymmetry: M('walkingAsymmetry', 'Walking asymmetry', '%', 1, 'line', 'mobility', false, 'How often steps with one foot are faster or slower than with the other. Lower is better.'),
+  doubleSupport: M('doubleSupport', 'Double support time', '%', 1, 'line', 'mobility', false, 'Share of walking time with both feet on the ground. Lower usually means better balance.'),
+  sixMinWalkM: M('sixMinWalkM', 'Six-minute walk', 'm', 0, 'line', 'mobility', true, 'Estimated distance you could walk in six minutes on flat ground.'),
+
+  envAudioDb: M('envAudioDb', 'Environmental sound', 'dB', 0, 'line', 'hearing', false, 'Average sound level around you. Long exposure above 80 dB can affect hearing.'),
+  headphoneDb: M('headphoneDb', 'Headphone audio', 'dB', 0, 'line', 'hearing', false, 'Average headphone volume. Keep it under 80 dB for long listening.'),
 };
-export const METRIC_ORDER: MetricKey[] = ['steps', 'sleepH', 'stress', 'restingHr', 'hrv', 'activeKcal', 'exerciseMin', 'distanceKm', 'walkingHr', 'vo2max'];
+
+export type CategoryDef = { key: CategoryKey; label: string; blurb: string; metrics: MetricKey[] };
+export const CATEGORIES: CategoryDef[] = [
+  { key: 'activity', label: 'Activity', blurb: 'Rings, steps, energy and workouts', metrics: ['activeKcal', 'exerciseMin', 'standHours', 'steps', 'distanceKm', 'flights', 'basalKcal', 'standMin', 'cyclingKm'] },
+  { key: 'body', label: 'Body Measurements', blurb: 'Weight, body fat, measurements, wrist temperature', metrics: ['bodyFatPct', 'wristTempC'] },
+  { key: 'heart', label: 'Heart', blurb: 'Heart rate, HRV, cardio fitness', metrics: ['hrAvg', 'restingHr', 'hrv', 'walkingHr', 'hrRecovery', 'vo2max'] },
+  { key: 'mind', label: 'Mental Wellbeing', blurb: 'Stress, mindful minutes, daylight', metrics: ['stress', 'mindfulMin', 'daylightMin'] },
+  { key: 'sleep', label: 'Sleep', blurb: 'Sleep, stages and schedule', metrics: ['sleepH'] },
+  { key: 'respiratory', label: 'Respiratory', blurb: 'Breathing rate and blood oxygen', metrics: ['respiratoryRate', 'spo2'] },
+  { key: 'mobility', label: 'Mobility', blurb: 'Walking speed, steadiness and gait', metrics: ['walkingSpeed', 'stepLengthCm', 'walkingAsymmetry', 'doubleSupport', 'sixMinWalkM'] },
+  { key: 'hearing', label: 'Hearing', blurb: 'Sound and headphone levels', metrics: ['envAudioDb', 'headphoneDb'] },
+];
+export const CATEGORY: Record<CategoryKey, CategoryDef> = Object.fromEntries(CATEGORIES.map(c => [c.key, c])) as Record<CategoryKey, CategoryDef>;
+export const METRIC_ORDER: MetricKey[] = CATEGORIES.flatMap(c => c.metrics);
+export const isMetricKey = (k: string | undefined): k is MetricKey => !!k && k in METRICS;
 
 export function healthDays(days: Record<string, HealthDay>) {
   return Object.keys(days).sort();

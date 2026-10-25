@@ -49,8 +49,9 @@ for (const theme of THEMES) {
       const shots: [string, string, string][] = [
         ['sheet-meal', '/food', 'Log meal'],
         ['sheet-workout', '/today', 'Start workout'],
-        ['sheet-weighin', '/body/weight', 'Add weigh-in'],
-        ['sheet-activity', '/move', 'Log activity'],
+        ['sheet-weighin', '/health/weight', 'Add weigh-in'],
+        ['sheet-activity', '/health/workouts', 'Log activity'],
+        ['sheet-import', '/health', 'Import'],
       ];
       for (const [name, path, button] of shots) {
         await page.goto(`/#${path}`);

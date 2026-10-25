@@ -31,6 +31,21 @@
   --chart-grid: #e3e8ec;
   --shadow-card: 0 1px 2px rgb(20 29 38 / 0.05), 0 2px 8px -2px rgb(20 29 38 / 0.06), 0 12px 32px -12px rgb(20 29 38 / 0.10);
   --shadow-pop: 0 8px 28px -6px rgb(20 29 38 / 0.22), 0 2px 6px rgb(20 29 38 / 0.08);
+  --cat-activity: #d9480f;
+  --cat-body: #8b3fb0;
+  --cat-heart: #d1306a;
+  --cat-mind: #0d8a80;
+  --cat-sleep: #4f46e5;
+  --cat-respiratory: #2563eb;
+  --cat-mobility: #a86a0b;
+  --cat-hearing: #0e7490;
+  --stage-awake: #e8604c;
+  --stage-rem: #2fa8e0;
+  --stage-core: #2563eb;
+  --stage-deep: #3b2fa6;
+  --ring-move: #e2275a;
+  --ring-exercise: #4a920f;
+  --ring-stand: #0a8aa3;
   color-scheme: light;
 }
 [data-theme='dark'] {
@@ -59,6 +74,21 @@
   --chart-grid: #24303b;
   --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -12px rgb(0 0 0 / 0.5);
   --shadow-pop: 0 12px 36px -8px rgb(0 0 0 / 0.6);
+  --cat-activity: #ff8a50;
+  --cat-body: #c792ea;
+  --cat-heart: #ff6f9c;
+  --cat-mind: #4fd1c5;
+  --cat-sleep: #8f8bff;
+  --cat-respiratory: #7aa7ff;
+  --cat-mobility: #f2bd4f;
+  --cat-hearing: #56d4e8;
+  --stage-awake: #ff8a73;
+  --stage-rem: #7dd3fc;
+  --stage-core: #5b8cff;
+  --stage-deep: #8b7dff;
+  --ring-move: #ff4f7b;
+  --ring-exercise: #9be15d;
+  --ring-stand: #41d9f0;
   color-scheme: dark;
 }
 

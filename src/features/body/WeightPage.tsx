@@ -51,7 +51,7 @@ export function WeightPage() {
 
   return (
     <div>
-      <PageHeader back="/body" kicker="Body" title="Weight" actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus /> Add weigh-in</Button>} />
+      <PageHeader back="/health/body" kicker="Body Measurements" title="Weight" actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus /> Add weigh-in</Button>} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-12">
           <KV k="7-day avg" v={now ? `${fmt(now, 1)}` : '–'} sub={now && prev ? `${signed(now - prev)} kg in a week` : 'needs a few weigh-ins'} />

@@ -89,7 +89,7 @@ test('drill-downs: week strip, workout, activity and metric pages are reachable 
   await page.goto('/#/today');
   await waitReady(page);
   await page.getByRole('link', { name: /Steps/ }).first().click();
-  await expect(page).toHaveURL(/#\/metric\/steps$/);
+  await expect(page).toHaveURL(/#\/health\/metric\/steps$/);
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(page).toHaveURL(/#\/today$/);
 });
@@ -140,4 +140,28 @@ test('demo mode without a token, with a clear way to connect', async ({ page }) 
   await expect(page.getByText('Demo data.')).toBeVisible();
   await page.getByRole('link', { name: 'Connect your data' }).click();
   await expect(page).toHaveURL(/#\/settings$/);
+});
+
+test('old Body, Move and metric links redirect into Health', async ({ page }) => {
+  await setup(page);
+  for (const [from, to] of [['/body/weight', /#\/health\/weight$/], ['/move', /#\/health\/activity$/], ['/metric/stress', /#\/health\/metric\/stress$/], ['/metric/sleepH', /#\/health\/sleep$/]] as const) {
+    await page.goto(`/#${from}`);
+    await waitReady(page);
+    await expect(page).toHaveURL(to);
+  }
+});
+
+test('health summary links to categories, sleep stages and metrics', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setup(page);
+  await page.goto('/#/health');
+  await waitReady(page);
+  await page.getByRole('link', { name: /^Sleep Sleep, stages and schedule/ }).click();
+  await expect(page).toHaveURL(/#\/health\/sleep$/);
+  await expect(page.getByRole('heading', { name: 'Sleep stages' })).toBeVisible();
+  await expect(page.getByText('Deep').first()).toBeVisible();
+  await page.goto('/#/health/heart');
+  await waitReady(page);
+  await page.getByRole('link', { name: /^HRV/ }).click();
+  await expect(page).toHaveURL(/#\/health\/metric\/hrv$/);
 });

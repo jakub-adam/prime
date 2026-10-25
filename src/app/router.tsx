@@ -1,13 +1,15 @@
-import { createHashRouter, Navigate, useRouteError } from 'react-router';
+import { createHashRouter, Navigate, useParams, useRouteError } from 'react-router';
 import { NotFound } from './NotFound';
 import { Button } from '@/components/ui/button';
-import { BodyOverview } from '@/features/body/BodyOverview';
 import { MeasurementsPage } from '@/features/body/MeasurementsPage';
 import { WeightPage } from '@/features/body/WeightPage';
 import { FoodRoute } from '@/features/food/FoodRoute';
+import { CategoryPage } from '@/features/health/CategoryPage';
+import { HealthSummary } from '@/features/health/HealthSummary';
+import { SleepPage } from '@/features/health/SleepPage';
 import { MetricPage } from '@/features/metrics/MetricPage';
 import { ActivityPage } from '@/features/move/ActivityPage';
-import { MoveOverview } from '@/features/move/MoveOverview';
+import { WorkoutsPage } from '@/features/move/WorkoutsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { TodayPage } from '@/features/today/TodayPage';
 import { LogPage } from '@/features/train/LogPage';
@@ -23,6 +25,11 @@ function RouteError() {
       <Button variant="primary" className="mt-6" onClick={() => { location.hash = '#/today'; location.reload(); }}>Reload</Button>
     </div>
   );
+}
+
+/* Links from before Body and Move were merged into Health keep working. */
+function Redirect({ to }: { to: (p: Record<string, string | undefined>) => string }) {
+  return <Navigate to={to(useParams())} replace />;
 }
 
 export const router = createHashRouter([
@@ -42,15 +49,22 @@ export const router = createHashRouter([
       { path: 'train/progress', element: <TrainRoute /> },
       { path: 'train/exercise/:name', element: <TrainRoute /> },
       { path: 'train/session/:id', element: <TrainRoute /> },
-      { path: 'body', element: <BodyOverview /> },
-      { path: 'body/weight', element: <WeightPage /> },
-      { path: 'body/measurements', element: <MeasurementsPage /> },
-      { path: 'move', element: <MoveOverview /> },
-      { path: 'move/activity/:id', element: <ActivityPage /> },
-      { path: 'metric/:key', element: <MetricPage /> },
+      { path: 'health', element: <HealthSummary /> },
+      { path: 'health/sleep', element: <SleepPage /> },
+      { path: 'health/weight', element: <WeightPage /> },
+      { path: 'health/measurements', element: <MeasurementsPage /> },
+      { path: 'health/workouts', element: <WorkoutsPage /> },
+      { path: 'health/workout/:id', element: <ActivityPage /> },
+      { path: 'health/metric/:key', element: <MetricPage /> },
+      { path: 'health/:cat', element: <CategoryPage /> },
+      { path: 'body', element: <Navigate to="/health/body" replace /> },
+      { path: 'body/weight', element: <Navigate to="/health/weight" replace /> },
+      { path: 'body/measurements', element: <Navigate to="/health/measurements" replace /> },
+      { path: 'move', element: <Navigate to="/health/activity" replace /> },
+      { path: 'move/activity/:id', element: <Redirect to={p => `/health/workout/${encodeURIComponent(p.id ?? '')}`} /> },
+      { path: 'metric/:key', element: <Redirect to={p => (p.key === 'sleepH' ? '/health/sleep' : `/health/metric/${p.key}`)} /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: '*', element: <NotFound /> },
     ],
   },
 ]);
-

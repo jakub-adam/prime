@@ -1,19 +1,17 @@
 import { Footprints, Plus, Watch } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
-import { useData, useGoals, useHealthDays, useToday } from '@/app/store';
-import { activityLabel, allActivities, fmtDur, isRun, pace, presentMetrics, sum, tenKProjection } from '@/core/calc';
+import { useData, useGoals, useToday } from '@/app/store';
+import { activityLabel, allActivities, fmtDur, isRun, pace, sum, tenKProjection } from '@/core/calc';
 import { addDays, fmtRelative, fmtShort } from '@/core/dates';
 import { TimeChart } from '@/components/charts';
 import { EmptyState, KV, PageHeader, RowLink } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/misc';
-import { MetricTile } from '@/features/today/TodayPage';
 import { cn, fmt } from '@/lib/utils';
 import { ActivitySheet } from './ActivitySheet';
 
-export function MoveOverview() {
+export function WorkoutsPage() {
   const data = useData();
   const g = useGoals();
   const today = useToday();
@@ -23,12 +21,11 @@ export function MoveOverview() {
   const proj = tenKProjection(acts, today);
   const goalSec = g.tenKGoalMin * 60;
   const last4 = runs.filter(r => r.date >= addDays(today, -27));
-  const metrics = presentMetrics(useHealthDays());
   const paceRows = runs.map(r => ({ date: r.date, pace: Math.round(pace(r)!) }));
 
   return (
     <div>
-      <PageHeader kicker="Activity" title="Move" actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus /> Log activity</Button>} />
+      <PageHeader back="/health/activity" kicker="Activity" title="Workouts" actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus /> Log activity</Button>} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-12">
           <KV k="10 km goal" v={fmtDur(goalSec)} sub={`${fmtDur(goalSec / 10)} /km`} />
@@ -52,7 +49,7 @@ export function MoveOverview() {
               <ul className="-mx-2 max-h-[520px] overflow-y-auto">
                 {acts.slice(0, 40).map(a => (
                   <li key={a.id}>
-                    <RowLink to={`/move/activity/${encodeURIComponent(a.id)}`}>
+                    <RowLink to={`/health/workout/${encodeURIComponent(a.id)}`}>
                       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-lane-soft text-lane-ink">
                         {a.source === 'Apple Watch' ? <Watch aria-hidden className="size-5" /> : <Footprints aria-hidden className="size-5" />}
                       </span>
@@ -75,22 +72,6 @@ export function MoveOverview() {
             )}
           </CardBody>
         </Card>
-        <section className="lg:col-span-12" aria-labelledby="health-h">
-          <div className="mb-3 flex items-end justify-between gap-2">
-            <div>
-              <h2 id="health-h" className="font-display text-[22px] font-semibold uppercase">Apple Health</h2>
-              <p className="text-[13px] text-muted">{data.health.importedAt ? `Last import ${fmtShort(data.health.importedAt.slice(0, 10))}` : 'Not imported yet'}</p>
-            </div>
-            <Button asChild variant="secondary" size="sm"><Link to="/settings">Import</Link></Button>
-          </div>
-          {metrics.length ? (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-              {metrics.map(k => <MetricTile key={k} k={k} />)}
-            </div>
-          ) : (
-            <Card><CardBody className="pt-4"><EmptyState title="No Apple Health data yet" action={<Button asChild variant="primary" size="sm"><Link to="/settings">Import Apple Health</Link></Button>}>Steps, sleep, heart rate, HRV and more, from your weekly export.</EmptyState></CardBody></Card>
-          )}
-        </section>
       </div>
       <ActivitySheet open={adding} onOpenChange={setAdding} />
     </div>

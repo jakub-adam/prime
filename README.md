@@ -42,7 +42,7 @@ Vite, React, TypeScript (strict), Tailwind CSS 4 with Radix primitives (shadcn/u
 src/core/       data layer, no UI: types, sync engine, GitHub client, calculations, Health import, CSV
 src/app/        store hooks, router (hash URLs, e.g. #/train/session/<id>), layout shell
 src/components/ shared UI, charts, week strip
-src/features/   today, food, train, body, move, metrics, settings
+src/features/   today, food, train, health (summary, categories, sleep), body, move (workouts), metrics, settings
 tests/          mock GitHub API, fixtures, Playwright specs
 ```
 
@@ -53,11 +53,26 @@ tests/          mock GitHub API, fixtures, Playwright specs
 - `localStorage` keys: `prime.gh` (token), `prime.cache` (data, shas, pending ops), `prime.draft` (workout in progress), `prime.theme`.
 - Settings adds two optional keys, `stepsGoal` and `sleepGoalH`. Only changed keys are written; anything else in `settings.json` is left alone.
 
-## Apple Health
+## Health tab and Apple Health import
 
-In the app: Settings → Apple Health import → choose `export.zip` from *Health → profile → Export All Health Data* → Import. Only daily totals (steps, distance, active kcal, exercise minutes, sleep, resting HR, HRV, walking HR, VO2 max, weight) and workouts are saved. Parsing runs in a Web Worker.
+The Health tab works like the Health app: pinned highlights, activity rings, workouts, and categories (Activity, Body Measurements, Heart, Mental Wellbeing, Sleep, Respiratory, Mobility, Hearing), each metric with its own page (W / M / 6M / Y / All). Sleep has stages (Awake, REM, Core, Deep), averages and a bedtime/wake-up schedule. Stress is an estimate calculated in the app from HRV and resting heart rate against your previous 4 weeks; it is never saved.
 
-`tools/import_health.py` does the same from the command line (the unit tests check that the app gives identical results):
+Import: Health → Import (or Settings → Apple Health import) → choose `export.zip` from *Health → profile → Export All Health Data*. Parsing runs in a Web Worker and only daily values and workouts are saved to `health.json`:
+
+| Group | Keys in `health.json` days |
+|---|---|
+| Activity | `steps`, `distanceKm`, `cyclingKm`, `flights`, `activeKcal`, `basalKcal`, `exerciseMin`, `standMin`, `standHours`, `daylightMin` |
+| Heart | `hrAvg`, `hrMin`, `hrMax`, `restingHr`, `walkingHr`, `hrv`, `hrRecovery`, `vo2max` |
+| Body | `weightKg`, `bodyFatPct`, `wristTempC` |
+| Respiratory | `respiratoryRate`, `spo2` (%) |
+| Mobility | `walkingSpeed` (km/h), `stepLengthCm`, `walkingAsymmetry` (%), `doubleSupport` (%), `sixMinWalkM` |
+| Hearing | `envAudioDb`, `headphoneDb` |
+| Mindfulness | `mindfulMin` |
+| Sleep | `sleepH`, `sleepCoreH`, `sleepDeepH`, `sleepRemH`, `sleepAwakeH`, `sleepStartMin` / `sleepEndMin` (minutes from midnight of the wake-up day; negative = the evening before) |
+
+All keys are optional and only written when the export has the data; the original keys are unchanged.
+
+`tools/import_health.py` does the same from the command line. The unit tests check that it and the app give identical results:
 
 ```
 python3 tools/import_health.py export.zip path/to/health-data/health.json

@@ -3,20 +3,51 @@
   "2026-10-18": {
    "steps": 4100,
    "distanceKm": 3.05,
+   "flights": 6,
    "activeKcal": 543,
    "exerciseMin": 41,
+   "basalKcal": 1815,
+   "standMin": 47,
+   "daylightMin": 38,
    "restingHr": 71.0,
    "hrv": 56.7,
    "walkingHr": 118.0,
-   "sleepH": 7.37
+   "hrRecovery": 27.0,
+   "respiratoryRate": 14.9,
+   "spo2": 97.0,
+   "walkingSpeed": 5.0,
+   "stepLengthCm": 71.3,
+   "walkingAsymmetry": 2.3,
+   "doubleSupport": 27.1,
+   "envAudioDb": 71.2,
+   "headphoneDb": 66.7,
+   "hrAvg": 104,
+   "hrMin": 52,
+   "hrMax": 171,
+   "standHours": 2,
+   "sleepH": 7.37,
+   "sleepAwakeH": 0.25,
+   "sleepCoreH": 2.5,
+   "sleepDeepH": 1.58,
+   "sleepRemH": 3.45,
+   "sleepStartMin": -50,
+   "sleepEndMin": 407
   },
   "2026-10-19": {
    "steps": 8812,
    "distanceKm": 6.6,
+   "cyclingKm": 8.44,
+   "mindfulMin": 11,
    "restingHr": 68.0,
    "vo2max": 39.3,
    "weightKg": 86.4,
-   "sleepH": 6.6
+   "bodyFatPct": 18.3,
+   "wristTempC": 35.6,
+   "sixMinWalkM": 612.3,
+   "sleepH": 6.6,
+   "sleepCoreH": 6.6,
+   "sleepStartMin": -5,
+   "sleepEndMin": 391
   }
  },
  "workouts": [
@@ -37,5 +68,5 @@
    "avgHr": null
   }
  ],
- "importedAt": "2026-10-25T12:36:27+01:00"
+ "importedAt": "2026-10-25T14:11:22+01:00"
 }

@@ -39,7 +39,9 @@ export const CSV_DATASETS: CsvDataset[] = [
   {
     key: 'health-days', label: 'Apple Health days', count: d => Object.keys(d.health.days || {}).length,
     build: d => {
-      const cols = ['steps', 'distanceKm', 'activeKcal', 'exerciseMin', 'sleepH', 'restingHr', 'hrv', 'walkingHr', 'vo2max', 'weightKg'];
+      const known = ['steps', 'distanceKm', 'activeKcal', 'exerciseMin', 'sleepH', 'restingHr', 'hrv', 'walkingHr', 'vo2max', 'weightKg'];
+      const seen = new Set(Object.values(d.health.days || {}).flatMap(v => Object.keys(v)));
+      const cols = [...known, ...[...seen].filter(k => !known.includes(k)).sort()];
       return toCsv(['date', ...cols], Object.entries(d.health.days || {}).sort().map(([date, v]) => [date, ...cols.map(c => v[c])]));
     },
   },
