@@ -118,11 +118,12 @@ export function exMetric(ex: Exercise) {
   return Math.max(-Infinity, ...ex.sets.map(st => setMetric(ex.kind, st)).filter((v): v is number => v != null));
 }
 const kgStr = (kg: number) => (kg % 1 ? kg.toFixed(1) : String(kg));
+/** Readable set: "150 kg × 9", "9 reps +20 kg", "12 s +5 kg". The unit always sits next to the number it belongs to. */
 export function fmtSet(kind: ExerciseKind, st: SetEntry) {
-  const plus = st.kg ? ` +${kgStr(+st.kg)}` : '';
-  if (kind === 'weight') return `${kgStr(+(st.kg ?? 0))}×${st.reps ?? ''}`;
-  if (kind === 'hold') return `${st.sec ?? ''}s${plus}`;
-  return `${st.reps ?? ''}${plus}`;
+  const plus = st.kg ? ` +${kgStr(+st.kg)} kg` : '';
+  if (kind === 'weight') return `${kgStr(+(st.kg ?? 0))} kg × ${st.reps ?? ''}`;
+  if (kind === 'hold') return `${st.sec ?? ''} s${plus}`;
+  return `${st.reps ?? ''} ${st.reps === 1 ? 'rep' : 'reps'}${plus}`;
 }
 export const metricUnit = (kind: ExerciseKind) => (kind === 'weight' ? 'kg e1RM' : kind === 'hold' ? 's best hold' : 'best reps');
 export function exVolume(ex: Exercise) {

@@ -236,7 +236,7 @@ function ExerciseCard({ ex, ei, date, update, onDone }: {
   const restSec = ex.rest ?? DEFAULT_REST;
   const [aKey, aLbl, bKey, bLbl] = ex.kind === 'weight' ? (['kg', 'KG', 'reps', 'REPS'] as const) : ex.kind === 'hold' ? (['sec', 'SEC', 'kg', '+KG'] as const) : (['reps', 'REPS', 'kg', '+KG'] as const);
   const setEx = (fn: (e: DraftExercise) => void) => update(x => { fn(x.exercises[ei]!); });
-  const prevText = (st: SetEntry | undefined) => (st ? fmtSet(last!.ex.kind, st).replace('×', ' × ') : '–');
+  const prevText = (st: SetEntry | undefined) => (st ? fmtSet(last!.ex.kind, st) : '–');
 
   const toggleDone = (si: number) => {
     const st = ex.sets[si]!;

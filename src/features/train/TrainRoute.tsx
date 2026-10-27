@@ -237,7 +237,7 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
                           <tr key={j} className={cn('border-t border-line/60', j === topIdx && isPr && 'bg-track-soft/50')}>
                             <td className="num py-2 text-center text-[16px] font-semibold text-muted">{j + 1}</td>
                             <td className="num py-2 text-[17px] font-semibold">
-                              {fmtSet(ex.kind, st).replace('×', ' × ')}{ex.kind === 'weight' ? <span className="font-sans text-xs text-muted"> kg</span> : ex.kind === 'hold' ? null : <span className="font-sans text-xs text-muted"> reps</span>}
+                              <SetText kind={ex.kind} st={st} />
                               {j === topIdx && isPr ? <Trophy aria-label="Best set, personal record" className="ml-1.5 inline size-3.5 text-track-ink" /> : null}
                             </td>
                             <td className="num py-2 pr-4 text-right text-[15px] text-muted">{ex.kind === 'weight' && sm ? fmtKg(Math.round(sm * 10) / 10) : ''}</td>
@@ -261,6 +261,15 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
         onConfirm={() => { engine.commit('training', [{ t: 'remove', c: 'sessions', id: s.id }], 'Workout deleted'); nav('/train', { replace: true }); }} />
     </div>
   );
+}
+
+/** One set with the numbers large and each unit small and next to its number. */
+function SetText({ kind, st }: { kind: Session['exercises'][number]['kind']; st: Session['exercises'][number]['sets'][number] }) {
+  const u = (t: string) => <span className="font-sans text-xs font-medium text-muted">{t}</span>;
+  const kg = st.kg != null ? fmtKg(st.kg) : null;
+  if (kind === 'weight') return <>{kg ?? 0}{u(' kg')} <span className="text-muted">×</span> {st.reps}{u(st.reps === 1 ? ' rep' : ' reps')}</>;
+  if (kind === 'hold') return <>{st.sec}{u(' s')}{kg ? <> {u('+')}{kg}{u(' kg')}</> : null}</>;
+  return <>{st.reps}{u(st.reps === 1 ? ' rep' : ' reps')}{kg ? <> {u('+')}{kg}{u(' kg')}</> : null}</>;
 }
 
 /* ---------- progress ---------- */
@@ -305,7 +314,7 @@ function Progress() {
                   <ExerciseIcon name={r.name} kind={r.kind} size={40} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{r.name}</div>
-                    <div className="truncate text-[13px] text-muted">Best {fmtSet(r.kind, r.topSet).replace('×', ' × ')} · {fmtShort(r.best.date)}</div>
+                    <div className="truncate text-[13px] text-muted">Best {fmtSet(r.kind, r.topSet)} · {fmtShort(r.best.date)}</div>
                   </div>
                   <div className="text-right">
                     <div className="num text-lg leading-none font-semibold">{fmt(r.best.m, r.kind === 'weight' ? 1 : 0)}</div>
