@@ -13,6 +13,7 @@ import { Confirm, useIsDesktop } from '@/components/ui/sheet';
 import { NotFound } from '@/app/NotFound';
 import { cn, fmt, signed } from '@/lib/utils';
 import { MealSheet } from './MealSheet';
+import { macroLine, NutrientSummary, NutritionTable } from './nutrition';
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -74,6 +75,7 @@ function FoodDay({ date, selectedId }: { date: string; selectedId?: string }) {
           <CardBody className="space-y-1">
             <Meter label="Calories" value={tot.kcal} target={g.kcal} unit="kcal" color="track" to="/food/trends" />
             <Meter label="Protein" value={tot.protein} target={g.protein} unit="g" color="lane" to="/food/trends" />
+            <NutrientSummary t={tot} className="mt-3" />
           </CardBody>
         </Card>
         <Card aria-labelledby="meals-h">
@@ -88,6 +90,7 @@ function FoodDay({ date, selectedId }: { date: string; selectedId?: string }) {
                       <div className="min-w-0 flex-1">
                         <div className="font-semibold">{m.meal}</div>
                         <div className="line-clamp-2 text-[13px] text-muted">{m.items || 'No description'}</div>
+                        {macroLine(m) ? <div className="mt-0.5 text-[12px] font-semibold text-muted">{macroLine(m)}</div> : null}
                       </div>
                       <div className="shrink-0 text-right">
                         <div className="num text-lg leading-none font-semibold text-track-ink">{fmt(+m.kcal)}<span className="ml-0.5 font-sans text-xs font-medium text-muted">kcal</span></div>
@@ -178,6 +181,9 @@ function MealDetail({ mealId, standalone }: { mealId: string; standalone?: boole
             <KV k="Calories" v={<span className="text-track-ink">{fmt(+m.kcal)}</span>} sub={`${fmt(kcalShare)}% of the day · ${fmt((+m.kcal / g.kcal) * 100)}% of target`} />
             <KV k="Protein" v={<span className="text-lane-ink">{fmt(+m.protein, +m.protein % 1 ? 1 : 0)} g</span>} sub={`${fmt((+m.protein / g.protein) * 100)}% of target`} />
           </div>
+          <div className="mt-4 rounded-xl border border-line px-4 py-1">
+            <NutritionTable m={m} />
+          </div>
           <div className="mt-4 text-[13px] text-muted">
             Day total: {fmt(tot.kcal)} kcal · {fmt(tot.protein)} g protein ·{' '}
             <Link className="font-semibold text-lane-ink hover:underline" to={m.date === today ? '/food' : `/food/${m.date}`}>Open day</Link>
@@ -197,40 +203,41 @@ function FoodTrends({ standalone }: { standalone?: boolean }) {
   const g = useGoals();
   const today = useToday();
   const nav = useNavigate();
-  const [metric, setMetric] = useState<'kcal' | 'protein'>('kcal');
+  const [metric, setMetric] = useState<'kcal' | 'protein' | 'carbs' | 'fat'>('kcal');
   const days14 = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(today, i - 13)), [today]);
-  const rows = days14.map(d => { const t = dayTotals(data.food.meals, d); return { date: d, kcal: t.n ? t.kcal : null, protein: t.n ? t.protein : null }; });
+  const rows = days14.map(d => { const t = dayTotals(data.food.meals, d); return { date: d, kcal: t.n ? t.kcal : null, protein: t.n ? t.protein : null, carbs: t.carbs, fat: t.fat }; });
   const weeks = weeklyFood(data.food.meals, today, 6);
-  const target = metric === 'kcal' ? g.kcal : g.protein;
-  const logged = rows.filter(r => r.kcal != null);
+  const target = metric === 'kcal' ? g.kcal : metric === 'protein' ? g.protein : null;
+  const logged = rows.filter(r => r[metric] != null);
   const a = avg(logged.map(r => r[metric]));
   const hit = logged.filter(r => metric === 'kcal' ? Math.abs((r.kcal ?? 0) - g.kcal) <= g.kcal * 0.1 : (r.protein ?? 0) >= g.protein).length;
   const unit = metric === 'kcal' ? 'kcal' : 'g';
+  const label = { kcal: 'Calories', protein: 'Protein', carbs: 'Carbs', fat: 'Fat' }[metric];
+  const color = ({ kcal: 'track', protein: 'lane', carbs: 'mobility', fat: 'body' } as const)[metric];
   return (
     <div>
       {standalone ? <PageHeader back="/food" kicker="Food" title="Last 14 days" /> : null}
       <div className="space-y-4">
         <Card>
           <CardHeader title={standalone ? 'Daily totals' : 'Last 14 days'} meta="Tap a bar to open that day"
-            action={<Segmented label="Metric" value={metric} onChange={setMetric} options={[['kcal', 'Calories'], ['protein', 'Protein']]} />} />
+            action={<Segmented label="Metric" size="sm" value={metric} onChange={setMetric} options={[['kcal', 'Calories'], ['protein', 'Protein'], ['carbs', 'Carbs'], ['fat', 'Fat']]} />} />
           <CardBody>
             <div className="mb-3 grid grid-cols-3 gap-2 sm:gap-3">
               <KV k="14-day avg" v={fmt(a)} sub={unit} />
-              <KV k="Target" v={fmt(target)} sub={unit} />
-              <KV k={metric === 'kcal' ? 'Within 10%' : 'Hit target'} v={`${hit}/${logged.length}`} sub="logged days" />
+              {target != null ? <KV k="Target" v={fmt(target)} sub={unit} /> : <KV k="Highest" v={logged.length ? fmt(Math.max(...logged.map(r => r[metric] ?? 0))) : '–'} sub={unit} />}
+              {target != null
+                ? <KV k={metric === 'kcal' ? 'Within 10%' : 'Hit target'} v={`${hit}/${logged.length}`} sub="logged days" />
+                : <KV k="Days logged" v={`${logged.length}/14`} sub={`with ${label.toLowerCase()}`} />}
             </div>
             <TimeChart
               data={rows}
               height={standalone ? 240 : 300}
               zero
-              goal={{ value: target, label: `Target ${fmt(target)}` }}
-              series={[{
-                key: metric, label: metric === 'kcal' ? 'Calories' : 'Protein', kind: 'bar', color: metric === 'kcal' ? 'track' : 'lane',
-                format: v => `${fmt(v)} ${metric === 'kcal' ? 'kcal' : 'g protein'}`,
-              }]}
-              ariaLabel={`Daily ${metric === 'kcal' ? 'calories' : 'protein'} for the last 14 days against the target`}
+              goal={target != null ? { value: target, label: `Target ${fmt(target)}` } : null}
+              series={[{ key: metric, label, kind: 'bar', color, format: v => `${fmt(v)} ${metric === 'kcal' ? 'kcal' : `g ${label.toLowerCase()}`}` }]}
+              ariaLabel={`Daily ${label.toLowerCase()} for the last 14 days${target != null ? ' against the target' : ''}`}
               onSelect={d => nav(d === today ? '/food' : `/food/${d}`)}
-              empty="Log a few days of meals to see the chart."
+              empty={metric === 'carbs' || metric === 'fat' ? `Add ${label.toLowerCase()} to meals (More nutrients) to see this chart.` : 'Log a few days of meals to see the chart.'}
             />
           </CardBody>
         </Card>

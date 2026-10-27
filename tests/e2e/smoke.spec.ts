@@ -85,7 +85,7 @@ test('drill-downs: week strip, workout, activity and metric pages are reachable 
   await waitReady(page);
   await page.getByRole('link', { name: 'Workout: Upper A' }).first().click();
   await expect(page).toHaveURL(/#\/train\/session\//);
-  await expect(page.getByRole('button', { name: 'Repeat this workout' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Repeat' })).toBeVisible();
   await page.goto('/#/today');
   await waitReady(page);
   await page.getByRole('link', { name: /Steps/ }).first().click();
@@ -101,8 +101,54 @@ test('start workout prefills from the last session of that name', async ({ page 
   await page.getByRole('button', { name: 'Start workout' }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /^Lower A/ }).click();
   await expect(page).toHaveURL(/#\/train\/log$/);
-  await expect(page.getByLabel('Exercise 1')).toHaveValue('Hack squat');
+  await waitReady(page);
+  await expect(page.getByRole('link', { name: 'Hack squat' })).toBeVisible();
   await expect(page.getByLabel('Set 1 kg').first()).toHaveAttribute('placeholder', /\d/);
+  // Ticking an empty set copies last time's numbers and starts the rest timer.
+  await page.getByRole('button', { name: 'Set 1 done' }).first().click();
+  await expect(page.getByLabel('Set 1 kg').first()).not.toHaveValue('');
+  await expect(page.getByRole('timer', { name: /Rest timer/ })).toBeVisible();
+  // Add an exercise from the picker and finish.
+  await page.getByRole('button', { name: 'Add exercise' }).click();
+  await page.getByRole('dialog').getByLabel('Search exercises').fill('lateral');
+  await page.getByRole('dialog').getByRole('button', { name: /^Lateral raise/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Add 1 exercise/ }).click();
+  await expect(page.getByRole('link', { name: 'Lateral raise' })).toBeVisible();
+  await page.getByRole('button', { name: 'Finish', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Save workout/ }).click();
+  await expect(page).toHaveURL(/#\/train\/session\//);
+});
+
+test('week strip day and chart bars open that day', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setup(page);
+  await page.goto('/#/today');
+  await waitReady(page);
+  await page.getByRole('link', { name: /^Open Wed\s*21$/ }).click();
+  await expect(page).toHaveURL(/#\/day\/2026-10-21$/);
+  await expect(page.getByRole('heading', { name: 'Food' })).toBeVisible();
+  await expect(page.getByText('Upper A').first()).toBeVisible();
+  await page.goto('/#/health/metric/steps');
+  await waitReady(page);
+  await page.locator('.recharts-bar-rectangle').last().click();
+  await expect(page).toHaveURL(/#\/health\/day\/\d{4}-\d{2}-\d{2}$/);
+});
+
+test('meals can carry carbs, fat and other nutrients', async ({ page }) => {
+  const gh = await setup(page);
+  await page.goto('/#/food');
+  await waitReady(page);
+  await page.getByRole('button', { name: 'Log meal' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Calories (kcal)').fill('500');
+  await dialog.getByLabel('Protein (g)').fill('30');
+  await dialog.getByRole('button', { name: /More nutrients/ }).click();
+  await dialog.getByLabel('Carbs (g)').fill('55.5');
+  await dialog.getByLabel('Fat (g)', { exact: true }).fill('12');
+  await dialog.getByRole('button', { name: 'Add meal' }).click();
+  await expect.poll(() => gh.read<{ meals: Meal[] }>('food.json').meals.find(m => m.kcal === 500 && m.carbs === 55.5)).toMatchObject({ protein: 30, fat: 12 });
+  const saved = gh.read<{ meals: Meal[] }>('food.json').meals.find(m => m.carbs === 55.5)!;
+  expect(saved).not.toHaveProperty('sugar');
 });
 
 test('keyboard: skip link and visible focus', async ({ page }) => {

@@ -109,7 +109,11 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
           data={data}
           margin={{ top: 12, right: goal ? Math.max(36, Math.round(goal.label.length * 6.6) + 10) : 6, bottom: 0, left: 0 }}
           accessibilityLayer={false}
-          onClick={onSelect ? (s: { activeLabel?: string | number }) => { if (s?.activeLabel) onSelect(String(s.activeLabel)); } : undefined}
+          onClick={onSelect ? (s: { activeLabel?: string | number; activeIndex?: number | string | null; activeTooltipIndex?: number | string | null }) => {
+            const i = s?.activeIndex ?? s?.activeTooltipIndex;
+            const d = s?.activeLabel ?? (i != null ? data[Number(i)]?.date : undefined);
+            if (d) onSelect(String(d));
+          } : undefined}
           style={onSelect ? { cursor: 'pointer' } : undefined}
         >
           <CartesianGrid vertical={false} strokeDasharray="0" />
@@ -127,7 +131,8 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
           {series.map(s => {
             if (s.kind === 'bar') {
               return (
-                <Bar key={s.key} dataKey={s.key} name={s.label} fill={COLOR[s.color]} radius={[4, 4, 0, 0]} maxBarSize={many ? 10 : 30} isAnimationActive={!reduced} animationDuration={500}>
+                <Bar key={s.key} dataKey={s.key} name={s.label} fill={COLOR[s.color]} radius={[4, 4, 0, 0]} maxBarSize={many ? 10 : 30} isAnimationActive={!reduced} animationDuration={500}
+                  onClick={onSelect ? (e: { payload?: Row }) => { if (e?.payload?.date) onSelect(e.payload.date); } : undefined}>
                   {s.colorAt ? data.map((r, i) => <Cell key={r.date} fill={COLOR[s.colorAt!(Number(r[s.key] ?? 0), i)]} />) : null}
                 </Bar>
               );

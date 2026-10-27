@@ -14,8 +14,8 @@ export type CsvDataset = { key: string; label: string; build: (d: DataFiles) => 
 export const CSV_DATASETS: CsvDataset[] = [
   {
     key: 'meals', label: 'Meals', count: d => d.food.meals.length,
-    build: d => toCsv(['id', 'date', 'time', 'meal', 'items', 'kcal', 'protein'],
-      d.food.meals.map(m => [m.id, m.date, m.time, m.meal, m.items, m.kcal, m.protein])),
+    build: d => toCsv(['id', 'date', 'time', 'meal', 'items', 'kcal', 'protein', 'carbs', 'sugar', 'fiber', 'fat', 'satFat', 'salt'],
+      d.food.meals.map(m => [m.id, m.date, m.time, m.meal, m.items, m.kcal, m.protein, m.carbs, m.sugar, m.fiber, m.fat, m.satFat, m.salt])),
   },
   {
     key: 'sets', label: 'Training sets', count: d => d.training.sessions.reduce((n, s) => n + s.exercises.reduce((k, e) => k + e.sets.length, 0), 0),

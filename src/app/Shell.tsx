@@ -15,7 +15,7 @@ export const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/health', label: 'Health', icon: HeartPulse },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
-const isActive = (pathname: string, to: string) => pathname === to || pathname.startsWith(to + '/');
+const isActive = (pathname: string, to: string) => pathname === to || pathname.startsWith(to + '/') || (to === '/today' && pathname.startsWith('/day/'));
 
 function BrandMark({ className }: { className?: string }) {
   return (

@@ -111,10 +111,10 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
               'hidden h-full min-h-[132px] flex-col rounded-xl border p-2 @[640px]:flex',
               d.isToday ? 'border-track bg-track-soft/50' : 'border-line bg-surface-2',
             )}>
-              <div className="flex items-baseline justify-between px-1">
-                <span className={cn('text-xs font-semibold uppercase', d.isToday ? 'text-track-ink' : 'text-muted')}>{fmtDow(d.date)}</span>
+              <Link to={`/day/${d.date}`} className="-m-1 flex items-baseline justify-between rounded-lg px-2 py-1 transition-colors hover:bg-surface-3/70">
+                <span className={cn('text-xs font-semibold uppercase', d.isToday ? 'text-track-ink' : 'text-muted')}><span className="sr-only">Open </span>{fmtDow(d.date)}</span>
                 <span className="num text-lg leading-none font-semibold">{fmtDom(d.date)}</span>
-              </div>
+              </Link>
               <div className="mt-2 flex flex-1 flex-col gap-1">
                 {d.items.length ? d.items.map(i => (
                   <Link
@@ -130,7 +130,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
                     <span className="line-clamp-2">{i.label}</span>
                   </Link>
                 )) : (
-                  <span className={cn('grid flex-1 place-items-center text-sm', d.state === 'rest' ? 'text-muted' : 'text-muted/80')}>{emptyText(d)}</span>
+                  <Link to={`/day/${d.date}`} tabIndex={-1} aria-hidden className={cn('grid flex-1 place-items-center rounded-lg text-sm transition-colors hover:bg-surface-3/70', d.state === 'rest' ? 'text-muted' : 'text-muted/80')}>{emptyText(d)}</Link>
                 )}
               </div>
             </div>
@@ -141,7 +141,10 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
       <WeekSummary days={days} />
 
       <div className="mt-3 @[640px]:hidden">
-        <div className="mb-1 text-[13px] font-semibold text-muted">{fmtDay(sel.date)}</div>
+        <Link to={`/day/${sel.date}`} className="mb-1.5 flex min-h-9 items-center justify-between rounded-lg text-[13px] font-semibold text-muted hover:text-ink">
+          <span>{fmtDay(sel.date)}</span>
+          <span className="flex items-center gap-0.5 text-lane-ink">Open day <ChevronRight aria-hidden className="size-4" /></span>
+        </Link>
         {sel.items.length ? (
           <ul className="flex flex-col gap-1.5">
             {sel.items.map(i => (

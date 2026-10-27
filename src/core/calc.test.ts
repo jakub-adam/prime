@@ -50,7 +50,9 @@ describe('data helpers', () => {
   });
   it('day totals', () => {
     const meals = [{ id: 'a', date: 'd', meal: 'x', kcal: 500, protein: 40 }, { id: 'b', date: 'd', meal: 'y', kcal: 250, protein: 20.5 }];
-    expect(dayTotals(meals, 'd')).toEqual({ kcal: 750, protein: 60.5, n: 2 });
+    expect(dayTotals(meals, 'd')).toMatchObject({ kcal: 750, protein: 60.5, n: 2, carbs: null, fat: null });
+    const withMacros = [{ id: 'a', date: 'd', meal: 'x', kcal: 500, protein: 40, carbs: 50, fat: 10.5 }, { id: 'b', date: 'd', meal: 'y', kcal: 250, protein: 20, carbs: 20 }];
+    expect(dayTotals(withMacros, 'd')).toMatchObject({ carbs: 70, fat: 10.5, sugar: null });
   });
   it('PR flags mark sessions that beat the previous best', () => {
     const s = [sess('1', '2026-10-01', 'Upper A', 80, 8), sess('2', '2026-10-08', 'Upper A', 82.5, 8), sess('3', '2026-10-15', 'Upper A', 80, 8)];

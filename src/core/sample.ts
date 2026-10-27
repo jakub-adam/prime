@@ -17,7 +17,11 @@ export function sampleData(t = todayStr()): DataFiles {
     const day = addDays(t, -i);
     menu.forEach(([meal, time, items, k, p], j) => {
       if (i === 0 && j > 1) return;
-      d.food.meals.push({ id: `${day}_s${j}`, date: day, time, meal, items, kcal: Math.round(k * (0.85 + rnd() * 0.3)), protein: Math.round(p * (0.85 + rnd() * 0.3)) });
+      const kcal = Math.round(k * (0.85 + rnd() * 0.3)), protein = Math.round(p * (0.85 + rnd() * 0.3));
+      // Recent meals also carry the optional nutrients; older ones (like real v1 data) only have kcal and protein.
+      const fat = Math.round(((kcal - protein * 4) * 0.3) / 9), carbs = Math.round((kcal - protein * 4 - fat * 9) / 4);
+      const extra = i < 14 ? { carbs, sugar: Math.round(carbs * 0.25), fiber: Math.round(3 + rnd() * 6), fat, satFat: Math.round(fat * 0.35), salt: Math.round((0.6 + rnd()) * 10) / 10 } : {};
+      d.food.meals.push({ id: `${day}_s${j}`, date: day, time, meal, items, kcal, protein, ...extra });
     });
     if (rnd() > 0.2) d.body.weighins.push({ id: `${day}_w`, date: day, kg: Math.round((87.6 - (34 - i) * 0.07 + (rnd() - 0.5) * 1.2) * 10) / 10 });
     const steps = Math.round(4000 + rnd() * 9000);
@@ -74,7 +78,7 @@ export function sampleData(t = todayStr()): DataFiles {
     const day = addDays(t, -32 + w * 7 + j * 2);
     if (day > t) return;
     d.training.sessions.push({
-      id: `${day}_t${j}`, date: day, name, notes: w === 4 && j === 0 ? 'Felt strong, RPE 8 on the last bench set.' : '',
+      id: `${day}_t${j}`, date: day, name, durationMin: 48 + j * 6 + w * 2, notes: w === 4 && j === 0 ? 'Felt strong, RPE 8 on the last bench set.' : '',
       exercises: exs.map(([n, kind, kg, reps]) => ({
         name: n, kind,
         sets: [0, 1, 2].map(si => kind === 'hold'

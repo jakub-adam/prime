@@ -1,6 +1,6 @@
 import { Dumbbell, Footprints, HeartPulse, Play, Plus, Timer, UtensilsCrossed } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useData, useDraft, useGoals, useHealthDays, useToday } from '@/app/store';
 import {
   activityLabel, allActivities, avg, byDateDesc, dayTotals, fmtDur, lastNDays, mealsOn, METRICS, metricSeries, presentMetrics,
@@ -136,6 +136,7 @@ function TrendCard({ title, to, children, meta, className }: { title: string; to
 }
 
 function TrendCharts() {
+  const nav = useNavigate();
   const data = useData();
   const g = useGoals();
   const today = useToday();
@@ -158,18 +159,18 @@ function TrendCharts() {
   return (
     <>
       <TrendCard title="Weight" to="/health/weight" className="lg:col-span-4" meta={now ? `${fmt(now, 1)} kg avg · ${fmt(Math.max(0, now - g.goalWeight), 1)} kg to ${fmt(g.goalWeight)}` : 'Last 30 days'}>
-        <TimeChart data={weightRows} height={190} ariaLabel="Bodyweight over the last 30 days with 7-day average"
+        <TimeChart data={weightRows} height={190} onSelect={d => nav(`/health/day/${d}`)} ariaLabel="Bodyweight over the last 30 days with 7-day average"
           series={[{ key: 'kg', label: 'Weigh-in', kind: 'dots', color: 'lane', format: v => `${fmt(v, 1)} kg` }, { key: 'avg', label: '7-day avg', kind: 'line', color: 'lane', format: v => `${fmt(v, 1)} kg` }]}
           empty="Log weigh-ins to see your trend." />
         <div className="mt-2"><Legend items={[{ label: 'Weigh-in', color: 'lane', kind: 'dot' }, { label: '7-day average', color: 'lane', kind: 'line' }]} /></div>
       </TrendCard>
       <TrendCard title="Steps" to="/health/metric/steps" className="lg:col-span-4" meta={`Last 14 days · goal ${fmt(g.stepsGoal)}`}>
-        <TimeChart data={steps} height={190} zero ariaLabel="Daily steps for the last 14 days" goal={{ value: g.stepsGoal, label: fmt(g.stepsGoal) }}
+        <TimeChart data={steps} height={190} zero onSelect={d => nav(`/health/day/${d}`)} ariaLabel="Daily steps for the last 14 days" goal={{ value: g.stepsGoal, label: fmt(g.stepsGoal) }}
           series={[{ key: 'steps', label: 'Steps', kind: 'bar', color: 'lane', format: v => fmt(v), colorAt: v => (v >= g.stepsGoal ? 'lane' : 'muted') }]}
           yFormat={v => (v >= 1000 ? `${v / 1000}k` : String(v))} empty="Import Apple Health to see steps." />
       </TrendCard>
       <TrendCard title="Sleep" to="/health/sleep" className="lg:col-span-4" meta={`Last 14 nights · goal ${fmt(g.sleepGoalH, 1)} h`}>
-        <TimeChart data={sleep} height={190} zero ariaLabel="Nightly sleep for the last 14 nights" goal={{ value: g.sleepGoalH, label: `${fmt(g.sleepGoalH)} h` }}
+        <TimeChart data={sleep} height={190} zero onSelect={d => nav(`/health/day/${d}`)} ariaLabel="Nightly sleep for the last 14 nights" goal={{ value: g.sleepGoalH, label: `${fmt(g.sleepGoalH)} h` }}
           series={[{ key: 'sleepH', label: 'Sleep', kind: 'bar', color: 'lane', format: v => `${fmt(v, 1)} h`, colorAt: v => (v >= g.sleepGoalH ? 'lane' : 'muted') }]}
           empty="Import Apple Health to see sleep." />
       </TrendCard>

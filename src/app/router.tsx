@@ -3,6 +3,7 @@ import { NotFound } from './NotFound';
 import { Button } from '@/components/ui/button';
 import { MeasurementsPage } from '@/features/body/MeasurementsPage';
 import { WeightPage } from '@/features/body/WeightPage';
+import { DayPage } from '@/features/day/DayPage';
 import { FoodRoute } from '@/features/food/FoodRoute';
 import { CategoryPage } from '@/features/health/CategoryPage';
 import { HealthSummary } from '@/features/health/HealthSummary';
@@ -47,9 +48,12 @@ export const router = createHashRouter([
       { path: 'train', element: <TrainRoute /> },
       { path: 'train/log', element: <LogPage /> },
       { path: 'train/progress', element: <TrainRoute /> },
+      { path: 'train/exercises', element: <TrainRoute /> },
       { path: 'train/exercise/:name', element: <TrainRoute /> },
       { path: 'train/session/:id', element: <TrainRoute /> },
+      { path: 'day/:date', element: <DayPage /> },
       { path: 'health', element: <HealthSummary /> },
+      { path: 'health/day/:date', element: <DayPage /> },
       { path: 'health/sleep', element: <SleepPage /> },
       { path: 'health/weight', element: <WeightPage /> },
       { path: 'health/measurements', element: <MeasurementsPage /> },

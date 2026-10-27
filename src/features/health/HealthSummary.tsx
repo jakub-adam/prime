@@ -8,6 +8,7 @@ import { EmptyState, PageHeader, RowLink } from '@/components/common';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { useMeasureChanges } from '@/features/body/MeasurementsPage';
 import { cn, fmt } from '@/lib/utils';
+import { DayPicker, RecentDayLinks } from '@/features/day/DayPage';
 import { ActivityRings, CategoryIcon, categoryHasData, HealthCard, RingsLegend, WeightCard } from './health-ui';
 import { ImportButton } from './HealthImporter';
 
@@ -99,6 +100,13 @@ export function HealthSummary() {
       {!hasHealth ? (
         <Card className="mb-5"><CardBody className="pt-4"><EmptyState icon={<HeartPulse />} title="Bring in your Apple Health data" action={<ImportButton />}>Export from the Health app on your iPhone and import it here: sleep and stages, heart, activity, mobility and more, all in one place.</EmptyState></CardBody></Card>
       ) : null}
+      <section aria-labelledby="days-h" className="mb-5">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="days-h" className="font-display text-[22px] font-semibold uppercase">By day</h2>
+          <DayPicker base="/health/day" />
+        </div>
+        <RecentDayLinks base="/health/day" />
+      </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <section aria-labelledby="pinned-h" className="lg:col-span-8">
           <h2 id="pinned-h" className="mb-3 font-display text-[22px] font-semibold uppercase">Pinned</h2>

@@ -1,6 +1,6 @@
 import { useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts';
 import { useGoals, useHealthDays, useToday } from '@/app/store';
 import { avg, healthDays, stdev } from '@/core/calc';
@@ -72,13 +72,19 @@ function StageTooltip({ active, payload, label }: TooltipContentProps<number, st
 
 function StagesChart({ rows, goal, height }: { rows: NightRow[]; goal: number; height: number }) {
   const reduced = useReducedMotion();
+  const nav = useNavigate();
   const max = Math.max(goal, ...rows.map(r => (r.sleepH ?? 0) + (r.sleepAwakeH ?? 0)));
   const top = Math.ceil(max + 0.5);
   const ticks = Array.from({ length: Math.floor(top / 2) + 1 }, (_, i) => i * 2);
   return (
     <div role="img" aria-label="Sleep per night split into Deep, Core, REM and Awake" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} margin={{ top: 12, right: 52, bottom: 0, left: 0 }} accessibilityLayer={false}>
+        <BarChart data={rows} margin={{ top: 12, right: 52, bottom: 0, left: 0 }} accessibilityLayer={false} style={{ cursor: 'pointer' }}
+          onClick={(e: { activeLabel?: string | number; activeIndex?: number | string | null; activeTooltipIndex?: number | string | null }) => {
+            const i = e?.activeIndex ?? e?.activeTooltipIndex;
+            const d = e?.activeLabel ?? (i != null ? rows[Number(i)]?.date : undefined);
+            if (d) nav(`/health/day/${d}`);
+          }}>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="date" tickFormatter={fmtShort} tickLine={false} axisLine={false} minTickGap={28} interval="preserveStartEnd" tickMargin={8} height={26} />
           <YAxis domain={[0, ticks[ticks.length - 1]!]} ticks={ticks} tickFormatter={v => `${v} h`} tickLine={false} axisLine={false} width={44} />
@@ -189,7 +195,7 @@ export function SleepPage() {
           <KV k="Avg wake-up" v={clock(avg(ends))} sub={stdev(ends) != null ? `±${fmt(stdev(ends), 0)} min` : ' '} />
         </div>
         <Card className="lg:col-span-8">
-          <CardHeader title="Sleep stages" meta={`${fmtShort(rows[0]!.date)} – ${fmtShort(last)}`} />
+          <CardHeader title="Sleep stages" meta={`${fmtShort(rows[0]!.date)} – ${fmtShort(last)} · tap a night for that day`} />
           <CardBody>
             <StagesChart rows={rows} goal={g.sleepGoalH} height={300} />
             <div className="mt-3"><Legend items={[...STAGES.map(s => ({ label: s.label, color: s.color, kind: 'bar' as const })), { label: 'Asleep (no stage)', color: 'muted', kind: 'bar' }, { label: 'Goal', color: 'muted', kind: 'dash' }]} /></div>

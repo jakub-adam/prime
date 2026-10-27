@@ -31,9 +31,32 @@ export function goals(s: Settings) {
 export function mealsOn(meals: Meal[], day: string) {
   return meals.filter(m => m.date === day).sort((a, b) => ((a.time || '99') < (b.time || '99') ? -1 : 1));
 }
-export function dayTotals(meals: Meal[], day: string) {
+export type NutrientKey = 'fat' | 'satFat' | 'carbs' | 'sugar' | 'fiber' | 'salt';
+/** Extra nutrients, tracked without targets. `sub` = "of which" rows on an EU label. */
+export const NUTRIENTS: { key: NutrientKey; label: string; short: string; sub?: boolean }[] = [
+  { key: 'carbs', label: 'Carbohydrates', short: 'Carbs' },
+  { key: 'sugar', label: 'of which sugars', short: 'Sugars', sub: true },
+  { key: 'fiber', label: 'Fibre', short: 'Fibre' },
+  { key: 'fat', label: 'Fat', short: 'Fat' },
+  { key: 'satFat', label: 'of which saturates', short: 'Sat. fat', sub: true },
+  { key: 'salt', label: 'Salt', short: 'Salt' },
+];
+export type DayTotals = { kcal: number; protein: number; n: number } & Record<NutrientKey, number | null>;
+/** Totals for a day. A nutrient is null when no meal that day recorded it. */
+export function dayTotals(meals: Meal[], day: string): DayTotals {
   const ms = mealsOn(meals, day);
-  return { kcal: sum(ms.map(m => +m.kcal || 0)), protein: sum(ms.map(m => +m.protein || 0)), n: ms.length };
+  const t = { kcal: sum(ms.map(m => +m.kcal || 0)), protein: sum(ms.map(m => +m.protein || 0)), n: ms.length } as DayTotals;
+  for (const { key } of NUTRIENTS) {
+    const vals = ms.map(m => m[key]).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    t[key] = vals.length ? Math.round(sum(vals) * 10) / 10 : null;
+  }
+  return t;
+}
+/** Share of calories from protein, carbs and fat (4/4/9 kcal per gram), when carbs and fat are known. */
+export function macroSplit(t: { protein: number; carbs: number | null; fat: number | null }) {
+  if (t.carbs == null || t.fat == null) return null;
+  const p = t.protein * 4, c = t.carbs * 4, f = t.fat * 9, all = p + c + f;
+  return all ? { protein: p / all, carbs: c / all, fat: f / all } : null;
 }
 export function weeklyFood(meals: Meal[], today: string, weeks = 4) {
   const out: { start: string; n: number; kcal: number | null; protein: number | null }[] = [];
@@ -156,9 +179,10 @@ export function recentSessionNames(sessions: Session[]) {
 }
 
 /* ---------- drafts (in-progress workout, stored in prime.draft) ---------- */
-export type DraftSet = { reps: string | number; kg: string | number; sec: string | number };
-export type DraftExercise = { name: string; kind: ExerciseKind; sets: DraftSet[] };
-export type Draft = { id: string | null; date: string; name: string; notes: string; exercises: DraftExercise[] };
+/* done, rest, startedAt and durationMin are optional so drafts saved by older versions still load. */
+export type DraftSet = { reps: string | number; kg: string | number; sec: string | number; done?: boolean };
+export type DraftExercise = { name: string; kind: ExerciseKind; sets: DraftSet[]; rest?: number };
+export type Draft = { id: string | null; date: string; name: string; notes: string; exercises: DraftExercise[]; startedAt?: number; durationMin?: number };
 
 export function blankEx(sessions: Session[], name: string): DraftExercise {
   const last = lastOf(sessions, name);
@@ -173,7 +197,8 @@ export function newDraft(sessions: Session[], name: string, today: string, from?
 export function draftFromSession(s: Session): Draft {
   return {
     id: s.id, date: s.date, name: s.name, notes: s.notes || '',
-    exercises: s.exercises.map(ex => ({ name: ex.name, kind: ex.kind, sets: ex.sets.map(st => ({ reps: st.reps ?? '', kg: st.kg ?? '', sec: st.sec ?? '' })) })),
+    exercises: s.exercises.map(ex => ({ name: ex.name, kind: ex.kind, sets: ex.sets.map(st => ({ reps: st.reps ?? '', kg: st.kg ?? '', sec: st.sec ?? '', done: true })) })),
+    ...(s.durationMin != null ? { durationMin: s.durationMin } : {}),
   };
 }
 export function draftToSession(d: Draft, makeId: () => string): Session | string {
@@ -187,7 +212,8 @@ export function draftToSession(d: Draft, makeId: () => string): Session | string
   })).filter(ex => ex.name && ex.sets.length);
   if (!exercises.length) return 'Fill in at least one set.';
   if (!d.date) return 'Pick a date.';
-  return { id: d.id || `${d.date}_${makeId()}`, date: d.date, name: d.name.trim() || 'Session', notes: d.notes.trim(), exercises };
+  const durationMin = d.durationMin ?? (d.startedAt ? Math.max(1, Math.round((Date.now() - d.startedAt) / 60000)) : undefined);
+  return { id: d.id || `${d.date}_${makeId()}`, date: d.date, name: d.name.trim() || 'Session', notes: d.notes.trim(), exercises, ...(durationMin != null ? { durationMin } : {}) };
 }
 
 /* ---------- activities ---------- */
@@ -442,4 +468,58 @@ export function withStress(days: Record<string, HealthDay>): Record<string, Heal
     out[d] = st ? { ...days[d], stress: st.score } : days[d]!;
   }
   return out;
+}
+
+/* ---------- training summaries (Train tab) ---------- */
+export function weeklyTraining(sessions: Session[], today: string, weeks = 8) {
+  const thisMon = mondayOf(today);
+  return Array.from({ length: weeks }, (_, i) => {
+    const start = addDays(thisMon, -7 * (weeks - 1 - i));
+    const end = addDays(start, 6);
+    const ss = sessions.filter(s => s.date >= start && s.date <= end);
+    return { date: start, sessions: ss.length, volume: sum(ss.map(sessionVolume)), sets: sum(ss.map(sessionSets)), minutes: sum(ss.map(s => s.durationMin ?? 0)) };
+  });
+}
+/** Consecutive weeks (ending this week or last) with at least one session. */
+export function weekStreak(sessions: Session[], today: string) {
+  const weeks = new Set(sessions.map(s => mondayOf(s.date)));
+  let mon = mondayOf(today);
+  if (!weeks.has(mon)) mon = addDays(mon, -7);
+  let n = 0;
+  while (weeks.has(mon)) { n++; mon = addDays(mon, -7); }
+  return n;
+}
+/** Saved workouts grouped by name, most recent first: the "routines" you can start again. */
+export function routines(sessions: Session[]) {
+  const out: { name: string; last: Session; count: number }[] = [];
+  for (const s of [...sessions].sort(byDateDesc)) {
+    if (!s.name) continue;
+    const r = out.find(x => x.name === s.name);
+    if (r) r.count++; else out.push({ name: s.name, last: s, count: 1 });
+  }
+  return out;
+}
+export function bestSet(ex: Exercise) {
+  let best: SetEntry | null = null, bm = -Infinity;
+  for (const st of ex.sets) { const m = setMetric(ex.kind, st) ?? -Infinity; if (m > bm) { bm = m; best = st; } }
+  return best;
+}
+export function sessionPrCount(sessions: Session[], s: Session, flags = prFlags(sessions)) {
+  return s.exercises.filter(e => flags.has(s.id + '|' + e.name.toLowerCase())).length;
+}
+/** Personal records for one exercise. */
+export function exerciseRecords(sessions: Session[], name: string) {
+  const h = exHistory(sessions, name);
+  if (!h.length) return null;
+  const kind = h[h.length - 1]!.ex.kind;
+  let bestM: (typeof h)[number] | null = null, mostVol: (typeof h)[number] | null = null, mostReps: { date: string; reps: number } | null = null, heaviest: { date: string; kg: number } | null = null;
+  for (const x of h) {
+    if (Number.isFinite(x.m) && (!bestM || x.m > bestM.m)) bestM = x;
+    if (!mostVol || exVolume(x.ex) > exVolume(mostVol.ex)) mostVol = x;
+    for (const st of x.ex.sets) {
+      if (st.reps != null && (!mostReps || st.reps > mostReps.reps)) mostReps = { date: x.date, reps: st.reps };
+      if (st.kg != null && (!heaviest || st.kg > heaviest.kg)) heaviest = { date: x.date, kg: st.kg };
+    }
+  }
+  return { kind, best: bestM, mostVolume: mostVol && exVolume(mostVol.ex) > 0 ? { date: mostVol.date, volume: exVolume(mostVol.ex) } : null, mostReps, heaviest, sessions: h.length };
 }

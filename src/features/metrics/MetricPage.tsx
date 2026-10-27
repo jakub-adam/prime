@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useGoals, useHealthDays } from '@/app/store';
 import { NotFound } from '@/app/NotFound';
 import { avg, CATEGORY, healthDays, isMetricKey, METRICS, metricSeries, rolling, STRESS_LABEL, stressFor, stressLevel } from '@/core/calc';
@@ -81,6 +81,7 @@ export function MetricPage() {
   const { key } = useParams();
   const g = useGoals();
   const [range, setRange] = useState<Range>('30');
+  const nav = useNavigate();
   const days = useHealthDays();
   const k = isMetricKey(key) ? key : null;
   const all = useMemo(() => (k ? healthDays(days).filter(d => days[d]?.[k] != null) : []), [days, k]);
@@ -173,7 +174,7 @@ export function MetricPage() {
           <KV k={fourth.k} v={fourth.v} sub={fourth.sub} />
         </div>
         <Card className="lg:col-span-8">
-          <CardHeader title={weekly ? `${def.label} by week` : `${def.label} per day`} meta={`${fmtShort(from)} – ${fmtShort(lastDay)}${def.unit && def.unit !== 'score' ? ` · ${def.unit}` : ''}`} />
+          <CardHeader title={weekly ? `${def.label} by week` : `${def.label} per day`} meta={`${fmtShort(from)} – ${fmtShort(lastDay)}${def.unit && def.unit !== 'score' ? ` · ${def.unit}` : ''}${weekly ? '' : ' · tap a day for all its stats'}`} />
           <CardBody>
             <TimeChart
               data={rows}
@@ -184,6 +185,7 @@ export function MetricPage() {
               series={[...mainSeries, ...avgSeries]}
               yFormat={k === 'steps' ? v => (v >= 1000 ? `${v / 1000}k` : String(v)) : undefined}
               ariaLabel={`${def.label} ${weekly ? 'by week' : 'per day'}`}
+              onSelect={weekly ? undefined : d => nav(`/health/day/${d}`)}
             />
             <div className="mt-3">
               <Legend items={[

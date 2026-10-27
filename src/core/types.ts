@@ -9,6 +9,13 @@ export type Meal = {
   items?: string;
   kcal: number;
   protein: number;
+  /* Optional extra nutrients in grams (EU label order). Older meals and the nightly task may leave them out. */
+  fat?: number;
+  satFat?: number;
+  carbs?: number;
+  sugar?: number;
+  fiber?: number;
+  salt?: number;
   [k: string]: unknown;
 };
 
@@ -21,6 +28,8 @@ export type Session = {
   name: string;
   notes?: string;
   exercises: Exercise[];
+  /** Optional: minutes from starting to finishing the workout in the app. */
+  durationMin?: number;
   [k: string]: unknown;
 };
 
