@@ -43,6 +43,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'], globIgnores: ['**/*.woff'],
         navigateFallback: 'index.html',
+        // A new version takes over open pages at once (autoUpdate then reloads them), instead of waiting for the next visit.
+        skipWaiting: true,
+        clientsClaim: true,
         // Data goes through the GitHub API and is cached by the app itself (localStorage), never by the service worker.
         runtimeCaching: [{ urlPattern: /^https:\/\/api\.github\.com\//, handler: 'NetworkOnly' }],
       },
