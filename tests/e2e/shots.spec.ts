@@ -50,7 +50,7 @@ for (const theme of THEMES) {
         ['sheet-meal', '/food', 'Log meal'],
         ['sheet-workout', '/today', 'Start workout'],
         ['sheet-weighin', '/health/weight', 'Add weigh-in'],
-        ['sheet-activity', '/health/workouts', 'Log activity'],
+        ['sheet-activity', '/activity', 'Log'],
         ['sheet-import', '/health', 'Import'],
       ];
       for (const [name, path, button] of shots) {

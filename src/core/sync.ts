@@ -7,7 +7,11 @@
 import { GhError, GitHubClient, explain, isNetworkError, type FetchLike } from './github';
 import { FILES, applyOps, clone, defaults, serialize } from './ops';
 import { KEYS, readJSON, remove, writeJSON, type Cache, type GhConfig, type KV } from './storage';
-import type { DataFiles, FileName, Op, Pending, Shas } from './types';
+import type { DataFiles, FileName, Op, Pending, Shas, WorkoutDetail } from './types';
+import { detailPath } from './workout';
+
+/** Workout details kept in localStorage for offline viewing (most recently opened). */
+const DETAIL_CACHE_MAX = 8;
 
 export type SyncKind = 'idle' | 'loading' | 'saving' | 'synced' | 'offline' | 'conflict' | 'error';
 export type SyncState = { kind: SyncKind; msg: string };
@@ -28,6 +32,8 @@ export type ToastFn = (msg: string, kind: 'info' | 'error') => void;
 export type EngineOptions = {
   kv: KV;
   sample: () => DataFiles;
+  /** demo workouts/<id>.json files for sample mode */
+  sampleDetails?: () => Record<string, WorkoutDetail>;
   fetch?: FetchLike;
   toast?: ToastFn;
 };
@@ -41,8 +47,12 @@ export class SyncEngine {
   private sample: () => DataFiles;
   private fetchImpl: FetchLike | undefined;
   private toastFn: ToastFn;
+  private sampleDetails: () => Record<string, WorkoutDetail>;
+  /** workouts/<id>.json already loaded or written this session; sample mode keeps imports here too */
+  private details = new Map<string, WorkoutDetail>();
 
   constructor(opts: EngineOptions) {
+    this.sampleDetails = opts.sampleDetails ?? (() => ({}));
     this.kv = opts.kv;
     this.sample = opts.sample;
     this.fetchImpl = opts.fetch;
@@ -88,6 +98,7 @@ export class SyncEngine {
   /* ---- loading ---- */
   async load() {
     if (!this.connected()) {
+      this.details = new Map(Object.entries(this.sampleDetails()));
       this.set({ mode: 'sample', data: this.sample(), loading: false, sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null });
       return;
     }
@@ -221,6 +232,38 @@ export class SyncEngine {
     }
   }
 
+  /* ---- workout details (workouts/<id>.json, outside the six data files) ---- */
+  /** Loads one workout's series: memory, then the offline cache, then GitHub. null = not in the repo. */
+  async workoutDetail(id: string): Promise<WorkoutDetail | null> {
+    const hit = this.details.get(id);
+    if (hit) return hit;
+    if (this.state.mode !== 'github') return null;
+    const cached = (readJSON<WorkoutDetail[]>(this.kv, KEYS.details) || []).find(d => d.id === id);
+    if (cached) { this.details.set(id, cached); return cached; }
+    const d = await this.client().getJSON<WorkoutDetail>(detailPath(id));
+    if (d) this.remember(d);
+    return d;
+  }
+  private remember(d: WorkoutDetail) {
+    this.details.set(d.id, d);
+    const list = (readJSON<WorkoutDetail[]>(this.kv, KEYS.details) || []).filter(x => x.id !== d.id);
+    writeJSON(this.kv, KEYS.details, [d, ...list].slice(0, DETAIL_CACHE_MAX));
+  }
+  /** Writes workout detail files, up to 40 per commit. In sample mode they stay in memory. */
+  async saveWorkoutDetails(details: Record<string, WorkoutDetail>) {
+    const all = Object.values(details);
+    for (const d of all) this.details.set(d.id, d);
+    if (this.state.mode !== 'github' || !all.length) return { saved: 0 };
+    let saved = 0;
+    for (let i = 0; i < all.length; i += 40) {
+      const part = all.slice(i, i + 40);
+      await this.client().commitFiles(part.map(d => ({ path: detailPath(d.id), content: serialize(d) })),
+        part.length === 1 ? `Add workout ${part[0]!.id} from app` : `Add ${part.length} workouts from app`);
+      saved += part.length;
+    }
+    return { saved };
+  }
+
   async connect(cfg: Required<GhConfig>) {
     const prev = this.gh();
     writeJSON(this.kv, KEYS.gh, cfg);
@@ -231,6 +274,8 @@ export class SyncEngine {
     }
     if (prev.owner !== cfg.owner || prev.repo !== cfg.repo) {
       remove(this.kv, KEYS.cache);
+      remove(this.kv, KEYS.details);
+      this.details.clear();
       this.set({ pending: {}, sha: {} });
     }
     await this.load();
@@ -240,12 +285,16 @@ export class SyncEngine {
   disconnect() {
     remove(this.kv, KEYS.gh);
     remove(this.kv, KEYS.cache);
+    remove(this.kv, KEYS.details);
+    this.details.clear();
     void this.load();
   }
 
   /** Drops the local copy of the data (not the token) and reloads from GitHub. Unsaved edits are lost. */
   clearCache() {
     remove(this.kv, KEYS.cache);
+    remove(this.kv, KEYS.details);
+    this.details.clear();
     this.set({ pending: {}, sha: {} });
     void this.load();
   }

@@ -1,4 +1,5 @@
-import type { DataFiles, FileName, Op } from './types';
+import type { DataFiles, FileName, HealthWorkout, Op } from './types';
+import { mergeWorkouts } from './workout';
 
 export const FILES: FileName[] = ['food', 'training', 'body', 'activities', 'health', 'settings'];
 
@@ -34,11 +35,8 @@ export function applyOps<T extends Record<string, unknown>>(data: T, ops: Op[]):
     } else if (op.t === 'health') {
       const days = Object.assign((d.days as Record<string, unknown>) ?? {}, op.days);
       d.days = Object.fromEntries(Object.entries(days).sort());
-      const seen = new Set(op.workouts.map(w => w.start));
-      d.workouts = ((d.workouts as { start: string }[] | undefined) ?? [])
-        .filter(w => !seen.has(w.start))
-        .concat(op.workouts)
-        .sort((a, b) => (a.start < b.start ? -1 : 1));
+      // Matched by id (type + start in UTC), so the same run exported with another UTC offset is one row.
+      d.workouts = mergeWorkouts((d.workouts as HealthWorkout[] | undefined) ?? [], op.workouts);
       d.importedAt = op.at;
     }
   }

@@ -46,6 +46,11 @@
   --ring-move: #e2275a;
   --ring-exercise: #4a920f;
   --ring-stand: #0a8aa3;
+  --zone-1: #8c9bab;
+  --zone-2: #3b82c4;
+  --zone-3: #3a9a4b;
+  --zone-4: #e08a1e;
+  --zone-5: #d43c2c;
   color-scheme: light;
 }
 [data-theme='dark'] {
@@ -89,6 +94,11 @@
   --ring-move: #ff4f7b;
   --ring-exercise: #9be15d;
   --ring-stand: #41d9f0;
+  --zone-1: #8b9aa9;
+  --zone-2: #5aa2e6;
+  --zone-3: #5cc46d;
+  --zone-4: #f2a444;
+  --zone-5: #f2685a;
   color-scheme: dark;
 }
 
@@ -168,6 +178,15 @@
 .recharts-reference-line-line { stroke: var(--muted); }
 .recharts-surface:focus, .recharts-wrapper:focus { outline: none; }
 .recharts-wrapper:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 8px; }
+
+/* Leaflet (Activity map): theme the controls; dark mode dims and inverts the OpenStreetMap tiles. */
+.leaflet-container { font-family: var(--font-sans); background: var(--surface-3); }
+.leaflet-container a { color: var(--lane-ink); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 85%, transparent) !important; color: var(--muted); font-size: 11px; }
+.leaflet-bar a { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.leaflet-bar a:hover { background: var(--surface-2); }
+[data-theme="dark"] .route-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.6); }
+.km-marker { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--surface); color: var(--ink); border: 2px solid var(--ink); font: 700 10px/1 var(--font-sans); font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

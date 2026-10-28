@@ -1,5 +1,6 @@
-/* In-memory stand-in for the GitHub contents API, used by unit tests (as a fetch) and by
-   Playwright (through page.route). It never talks to the network. */
+/* In-memory stand-in for the GitHub contents API (plus the Git Data API calls used to write several
+   files in one commit), used by unit tests (as a fetch) and by Playwright (through page.route).
+   It never talks to the network. */
 
 export type MockFile = { content: string; sha: number };
 export type MockRequest = { method: string; url: string; body?: string | null; auth?: string | null };
@@ -20,6 +21,11 @@ export class MockGitHub {
   offline = false;
   repoPrivate = true;
   canPush = true;
+  /** commits made through the Git Data API: message and paths */
+  commits: { message: string; paths: string[] }[] = [];
+  private head = 'c0';
+  private trees = new Map<string, { path: string; content: string }[]>();
+  private pendingCommits = new Map<string, { tree: string; message: string; parent: string }>();
 
   constructor(initial: Record<string, unknown> = {}) {
     for (const [name, data] of Object.entries(initial)) this.write(name, JSON.stringify(data, null, 1) + '\n');
@@ -47,11 +53,35 @@ export class MockGitHub {
     if (!u.pathname.startsWith(prefix)) return res(404, { message: 'Not Found' });
     const rest = u.pathname.slice(prefix.length);
     if (rest === '' && req.method === 'GET') {
-      return res(200, { full_name: `${this.owner}/${this.repo}`, private: this.repoPrivate, permissions: { push: this.canPush }, html_url: `https://github.com/${this.owner}/${this.repo}` });
+      return res(200, { full_name: `${this.owner}/${this.repo}`, private: this.repoPrivate, permissions: { push: this.canPush }, html_url: `https://github.com/${this.owner}/${this.repo}`, default_branch: 'main' });
     }
-    const m = /^\/contents\/([\w.-]+)$/.exec(rest);
+    if (rest === '/git/ref/heads/main' && req.method === 'GET') return res(200, { object: { sha: this.head } });
+    if (rest.startsWith('/git/commits/') && req.method === 'GET') return res(200, { sha: rest.slice(13), tree: { sha: `t-${rest.slice(13)}` } });
+    if (rest === '/git/trees' && req.method === 'POST') {
+      const body = JSON.parse(req.body || '{}') as { tree: { path: string; content: string }[] };
+      const sha = `t${this.shaSeq++}`;
+      this.trees.set(sha, body.tree);
+      return res(201, { sha });
+    }
+    if (rest === '/git/commits' && req.method === 'POST') {
+      const body = JSON.parse(req.body || '{}') as { tree: string; message: string; parents: string[] };
+      const sha = `c${this.shaSeq++}`;
+      this.pendingCommits.set(sha, { tree: body.tree, message: body.message, parent: body.parents[0]! });
+      return res(201, { sha });
+    }
+    if (rest === '/git/refs/heads/main' && req.method === 'PATCH') {
+      const body = JSON.parse(req.body || '{}') as { sha: string };
+      const c = this.pendingCommits.get(body.sha);
+      if (!c || c.parent !== this.head) return res(422, { message: 'Update is not a fast forward' });
+      const files = this.trees.get(c.tree) ?? [];
+      for (const f of files) this.write(f.path, f.content);
+      this.commits.push({ message: c.message, paths: files.map(f => f.path) });
+      this.head = body.sha;
+      return res(200, { object: { sha: body.sha } });
+    }
+    const m = /^\/contents\/([\w.%/-]+)$/.exec(rest);
     if (!m) return res(404, { message: 'Not Found' });
-    const name = m[1]!;
+    const name = decodeURIComponent(m[1]!);
     if (req.method === 'GET') {
       const f = this.files.get(name);
       if (!f) return res(404, { message: 'Not Found' });

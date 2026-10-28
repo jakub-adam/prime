@@ -7,7 +7,10 @@ import { importHealthStream } from './health-import';
 // expected.json is the output of tools/import_health.py on export.xml (synthetic data).
 const dir = fileURLToPath(new URL('../../tests/fixtures/health/', import.meta.url));
 const xml = readFileSync(dir + 'export.xml', 'utf8');
-const expected = JSON.parse(readFileSync(dir + 'expected.json', 'utf8')) as { days: unknown; workouts: unknown };
+const expected = JSON.parse(readFileSync(dir + 'expected.json', 'utf8')) as { days: unknown; workouts: Record<string, unknown>[] };
+/* The Python tool writes the base workout fields; the app adds splits, zones and the rest on top. */
+const BASE = ['type', 'start', 'durationMin', 'distanceKm', 'activeKcal', 'avgHr', 'id', 'endTime', 'durationSec', 'maxHr', 'minHr'];
+const base = (ws: object[]) => ws.map(w => Object.fromEntries(Object.entries(w).filter(([k]) => BASE.includes(k))));
 
 function streamOf(bytes: Uint8Array, chunk = 97) {
   let i = 0;
@@ -25,7 +28,7 @@ describe('Apple Health import', () => {
     const bytes = strToU8(xml);
     const res = await importHealthStream(streamOf(bytes, 13), { size: bytes.length, zip: false });
     expect(res.days).toEqual(expected.days);
-    expect(res.workouts).toEqual(expected.workouts);
+    expect(base(res.workouts)).toEqual(expected.workouts);
   });
 
   it('reads export.xml from inside export.zip', async () => {
@@ -33,7 +36,7 @@ describe('Apple Health import', () => {
     const progress: number[] = [];
     const res = await importHealthStream(streamOf(zip, 512), { size: zip.length, zip: true, onProgress: p => progress.push(p) });
     expect(res.days).toEqual(expected.days);
-    expect(res.workouts).toEqual(expected.workouts);
+    expect(base(res.workouts)).toEqual(expected.workouts);
     expect(progress.at(-1)).toBe(1);
   });
 

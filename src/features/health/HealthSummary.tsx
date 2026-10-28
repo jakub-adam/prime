@@ -38,14 +38,14 @@ export function WorkoutsCard({ className, limit = 4 }: { className?: string; lim
   const proj = tenKProjection(acts, today);
   return (
     <Card className={className}>
-      <CardHeader title={<Link to="/health/workouts" className="hover:underline hover:underline-offset-4">Workouts</Link>}
+      <CardHeader title={<Link to="/activity" className="hover:underline hover:underline-offset-4">Workouts</Link>}
         meta={proj ? `10 km projection ${fmtDur(proj.sec)} · goal ${fmtDur(g.tenKGoalMin * 60)}` : `${acts.length} total`} />
       <CardBody className="pt-1">
         {acts.length ? (
           <ul className="-mx-2">
             {acts.slice(0, limit).map(a => (
               <li key={a.id}>
-                <RowLink to={`/health/workout/${encodeURIComponent(a.id)}`}>
+                <RowLink to={`/activity/${encodeURIComponent(a.id)}`}>
                   <span className="grid size-9 shrink-0 place-items-center rounded-[10px] text-[var(--cat-activity)]" style={{ background: 'color-mix(in srgb, var(--cat-activity) 15%, transparent)' }}>
                     {a.source === 'Apple Watch' ? <Watch aria-hidden className="size-[18px]" /> : <Footprints aria-hidden className="size-[18px]" />}
                   </span>
@@ -58,7 +58,7 @@ export function WorkoutsCard({ className, limit = 4 }: { className?: string; lim
             ))}
           </ul>
         ) : <EmptyState icon={<Footprints />} title="No workouts yet">Log a run, or import Apple Health to pull in watch workouts.</EmptyState>}
-        <Link to="/health/workouts" className="mt-1 flex min-h-11 items-center justify-center gap-1 rounded-xl text-sm font-semibold text-lane-ink hover:bg-surface-2">All workouts and runs <ChevronRight aria-hidden className="size-4" /></Link>
+        <Link to="/activity" className="mt-1 flex min-h-11 items-center justify-center gap-1 rounded-xl text-sm font-semibold text-lane-ink hover:bg-surface-2">All activities <ChevronRight aria-hidden className="size-4" /></Link>
       </CardBody>
     </Card>
   );

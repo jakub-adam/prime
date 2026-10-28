@@ -1,7 +1,58 @@
 /* Demo data, shown only when no data repo is connected. Deterministic for a given day. */
-import { addDays, todayStr } from './dates';
+import { addDays, pad, parseYmd, todayStr } from './dates';
 import { defaults } from './ops';
-import type { DataFiles, ExerciseKind } from './types';
+import { syntheticWorkout } from './synthetic';
+import type { DataFiles, ExerciseKind, HealthWorkout, WorkoutDetail } from './types';
+import { analyzeWorkout, detailPath, isoUtc, workoutId } from './workout';
+
+/** "2026-10-21 07:05:00 +0200" for a local day and clock time, with the real offset that day. */
+function hkLocal(day: string, hm: string) {
+  const d = parseYmd(day);
+  d.setHours(+hm.slice(0, 2), +hm.slice(3, 5), 0, 0);
+  const off = -d.getTimezoneOffset();
+  return { ms: d.getTime(), str: `${day} ${hm}:00 ${off < 0 ? '-' : '+'}${pad(Math.floor(Math.abs(off) / 60))}${pad(Math.abs(off) % 60)}` };
+}
+
+type SampleWorkout = { row: HealthWorkout; detail?: WorkoutDetail };
+const sampleCache = new Map<string, SampleWorkout[]>();
+/** Watch workouts for the demo: runs for the progress charts, a treadmill run (no GPS), a walk and a strength session. */
+export function sampleWorkouts(t = todayStr()): SampleWorkout[] {
+  const hit = sampleCache.get(t);
+  if (hit) return hit;
+  const plan: [number, string, string, number, number, number, boolean?][] = [
+    // day offset, type, clock, km, seconds, avg HR, indoor
+    [-33, 'Running', '07:10', 3.0, 1290, 176],
+    [-25, 'Running', '07:05', 5.0, 2190, 168],
+    [-18, 'Running', '18:30', 3.1, 1215, 171],
+    [-11, 'Running', '07:00', 8.2, 3420, 164],
+    [-8, 'Running', '19:15', 3.0, 1140, 166, true],
+    [-6, 'Running', '07:20', 4.0, 1580, 163],
+    [-4, 'Running', '07:05', 5.18, 1914, 158],
+    [-2, 'Walking', '18:20', 3.4, 2550, 104],
+    [0, 'Running', '09:49', 2.54, 1032, 175],
+  ];
+  const out: SampleWorkout[] = plan.filter(([o]) => o <= 0).map(([o, type, hm, km, sec, hr, indoor], i) => {
+    const { ms, str } = hkLocal(addDays(t, o), hm);
+    const input = syntheticWorkout({ type, startMs: ms, km, sec, avgHr: hr, seed: 3 + i, ...(indoor ? { indoor } : {}) });
+    const { series, ...an } = analyzeWorkout({ ...input, elevationGainM: indoor ? 0 : Math.round(8 + km * 3) });
+    const id = workoutId(type, ms);
+    const base = { type, start: str, durationMin: Math.round(sec / 6) / 10, distanceKm: km, activeKcal: Math.round(km * (type === 'Walking' ? 55 : 78)), avgHr: an.avgHr ?? hr };
+    const row: HealthWorkout = {
+      ...base, id, endTime: isoUtc(ms + sec * 1000), durationSec: sec,
+      ...an, avgPaceSecPerKm: Math.round(sec / km), indoor: !!indoor, source: 'Apple Watch', steps: input.steps,
+      ...(series ? { detail: detailPath(id) } : {}),
+    };
+    return { row, ...(series ? { detail: { ...series, id } } : {}) };
+  });
+  const s = hkLocal(addDays(t, -3), '17:30');
+  out.push({ row: { type: 'TraditionalStrengthTraining', start: s.str, durationMin: 52, distanceKm: null, activeKcal: 290, avgHr: 121, id: workoutId('TraditionalStrengthTraining', s.ms), endTime: isoUtc(s.ms + 52 * 60e3), durationSec: 3120, maxHr: 158, minHr: 88, source: 'Apple Watch' } });
+  out.sort((a, b) => (a.row.id! < b.row.id! ? -1 : 1));
+  sampleCache.set(t, out);
+  return out;
+}
+export function sampleDetails(t = todayStr()) {
+  return Object.fromEntries(sampleWorkouts(t).filter(x => x.detail).map(x => [x.row.id!, x.detail!]));
+}
 
 export function sampleData(t = todayStr()): DataFiles {
   let seed = 7;
@@ -89,11 +140,8 @@ export function sampleData(t = todayStr()): DataFiles {
   });
   const runs: [number, number, number][] = [[-30, 3, 1140], [-23, 3.2, 1150], [-16, 4, 1500], [-12, 3, 1050], [-9, 5, 1880], [-4, 5.2, 1910], [-1, 6, 2200]];
   runs.forEach(([o, km, sec], i) => d.activities.activities.push({ id: `${addDays(t, o)}_sa${i}`, date: addDays(t, o), type: 'Run', distanceKm: km, durationSec: sec, avgHr: 150 + i * 2 }));
-  // Watch workouts: one duplicates a logged run (merged in the UI), one is a walk only the watch saw.
-  d.health.workouts.push(
-    { type: 'Running', start: `${addDays(t, -4)} 07:05:12 +0200`, durationMin: 31.9, distanceKm: 5.18, activeKcal: 402, avgHr: 158 },
-    { type: 'Walking', start: `${addDays(t, -2)} 18:20:00 +0200`, durationMin: 42.5, distanceKm: 3.4, activeKcal: 180, avgHr: 104 },
-  );
+  // Watch workouts with full detail (synthetic GPS and HR). One duplicates a logged run (merged in the UI).
+  d.health.workouts.push(...sampleWorkouts(t).map(x => x.row));
   d.health.importedAt = `${addDays(t, -1)}T21:00:00+02:00`;
   d.body.measurements.push(
     { id: `${addDays(t, -30)}_m1`, date: addDays(t, -30), waist: 92, chest: 104, arm: 37.5, thigh: 60 },

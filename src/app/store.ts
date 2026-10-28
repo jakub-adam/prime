@@ -3,7 +3,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import { goals, withStress, type Draft } from '@/core/calc';
 import { todayStr } from '@/core/dates';
-import { sampleData } from '@/core/sample';
+import { sampleData, sampleDetails } from '@/core/sample';
 import { KEYS, browserKV, readJSON, writeJSON } from '@/core/storage';
 import { SyncEngine } from '@/core/sync';
 
@@ -12,6 +12,7 @@ const kv = browserKV();
 export const engine = new SyncEngine({
   kv,
   sample: () => sampleData(),
+  sampleDetails: () => sampleDetails(),
   toast: (msg, kind) => (kind === 'error' ? toast.error(msg, { id: 'sync-error' }) : toast.success(msg)),
 });
 

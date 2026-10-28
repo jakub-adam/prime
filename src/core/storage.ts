@@ -7,6 +7,8 @@ export const KEYS = {
   cache: 'prime.cache',
   draft: 'prime.draft',
   theme: 'prime.theme',
+  /** last opened workouts/<id>.json files, for offline viewing */
+  details: 'prime.details',
 } as const;
 
 export type GhConfig = { owner?: string; repo?: string; token?: string };

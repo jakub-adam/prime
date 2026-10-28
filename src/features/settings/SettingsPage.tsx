@@ -19,6 +19,7 @@ const SECTIONS = [
   ['connection', 'GitHub connection'],
   ['goals', 'Targets and goals'],
   ['appearance', 'Appearance'],
+  ['activity', 'Activity'],
   ['health', 'Apple Health'],
   ['data', 'Your data'],
   ['about', 'About'],
@@ -165,6 +166,45 @@ function AppearanceSection() {
   );
 }
 
+function ActivitySection() {
+  const data = useData();
+  const g = useGoals();
+  const [f, setF] = useState({ maxHr: '', easy: '', privacy: '' });
+  useEffect(() => { setF({ maxHr: String(g.maxHr), easy: fmtDur(g.easyPaceSec), privacy: String(g.routePrivacyM) }); }, [g]);
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF(s => ({ ...s, [k]: e.target.value }));
+  const save = (next: Record<string, unknown>) => {
+    const ops: Op[] = Object.entries(next).filter(([k, v]) => JSON.stringify(data.settings[k]) !== JSON.stringify(v)).map(([k, v]) => ({ t: 'set', k, v }));
+    if (!ops.length) { toast('Nothing changed'); return; }
+    engine.commit('settings', ops, 'Settings saved');
+  };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const easy = parseDur(f.easy);
+    save({
+      maxHr: Math.round(num(f.maxHr) || 202),
+      easyPaceSec: easy && easy > 120 && easy < 1200 ? easy : 390,
+      routePrivacyM: Math.max(0, Math.min(2000, Math.round(num(f.privacy) ?? 200))),
+    });
+  };
+  return (
+    <Section id="activity" title="Activity" meta="Heart-rate zones, the easy-pace trend and route privacy.">
+      <form onSubmit={submit} className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <Field label="Max heart rate (bpm)" hint="Zones are % of this.">{id => <Input id={id} type="number" inputMode="numeric" min={140} max={230} value={f.maxHr} onChange={set('maxHr')} />}</Field>
+        <Field label="Easy pace (mm:ss /km)" hint="For HR at easy pace.">{id => <Input id={id} inputMode="numeric" pattern="[0-9:]*" value={f.easy} onChange={set('easy')} />}</Field>
+        <Field label="Hide route ends (m)" hint="Start and finish are cut off the map. 0 = show all.">{id => <Input id={id} type="number" inputMode="numeric" min={0} max={2000} step={50} value={f.privacy} onChange={set('privacy')} />}</Field>
+        <div className="col-span-2 md:col-span-3"><Button type="submit" variant="primary">Save</Button></div>
+      </form>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line/70 pt-4">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold">Store GPS routes on import</div>
+          <p className="text-[13px] text-muted">Routes go to workouts/&lt;id&gt;.json in your private data repo only. Zones use the max HR at import time.</p>
+        </div>
+        <Segmented label="Store GPS routes on import" value={g.importRoutes ? 'on' : 'off'} onChange={v => save({ importRoutes: v === 'on' })} options={[['on', 'On'], ['off', 'Off']]} />
+      </div>
+    </Section>
+  );
+}
+
 function HealthSection() {
   const data = useData();
   return (
@@ -248,7 +288,7 @@ export function SettingsPage() {
         </nav>
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-5">
           <div className="space-y-4 lg:space-y-5"><ConnectionSection /><GoalsSection /><AppearanceSection /></div>
-          <div className="space-y-4 lg:space-y-5"><HealthSection /><DataSection /><AboutSection /></div>
+          <div className="space-y-4 lg:space-y-5"><ActivitySection /><HealthSection /><DataSection /><AboutSection /></div>
         </div>
       </div>
       <p className="mt-6 flex items-center gap-1.5 text-[13px] text-muted"><Download aria-hidden className="size-3.5" /> Install: in Safari, Share → Add to Home Screen.</p>

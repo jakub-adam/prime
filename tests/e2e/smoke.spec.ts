@@ -2,7 +2,10 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { MockGitHub } from '../mock-github';
 import type { Meal } from '../../src/core/types';
-import { collectErrors, fixtures, ROUTES, setup, TODAY, waitReady } from './harness';
+import { syntheticExport } from '../fixtures/health/synthetic-export';
+import { collectErrors, fixtures, ROUTES, setup, TODAY, TREADMILL, waitReady } from './harness';
+
+const RUN_ID = 'Running_20261028T084946Z';
 
 test.describe('accessibility (axe, WCAG 2 AA)', () => {
   for (const theme of ['light', 'dark'] as const) {
@@ -210,4 +213,60 @@ test('health summary links to categories, sleep stages and metrics', async ({ pa
   await waitReady(page);
   await page.getByRole('link', { name: /^HRV/ }).click();
   await expect(page).toHaveURL(/#\/health\/metric\/hrv$/);
+});
+
+test('Apple Health import: one commit of workout files, the 12 Oct duplicate collapses, today’s run has map, splits and HR chart', async ({ page }) => {
+  const errors = await collectErrors(page);
+  const files = fixtures();
+  // health.json as it is in the data repo today: the same run twice, written with two UTC offsets
+  files['health.json'].workouts.push(
+    { type: 'Running', start: '2026-10-12 10:11:41 +0100', durationMin: 6.8, distanceKm: 1.14, activeKcal: 79, avgHr: null },
+    { type: 'Running', start: '2026-10-12 11:11:41 +0200', durationMin: 6.8, distanceKm: 1.14, activeKcal: 79, avgHr: null },
+  );
+  const before = files['health.json'].workouts.length;
+  const gh = new MockGitHub(files);
+  await setup(page, { gh });
+  await page.goto('/#/activity');
+  await waitReady(page);
+  await page.getByRole('button', { name: 'Import' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('input[type=file]').setInputFiles({ name: 'export.zip', mimeType: 'application/zip', buffer: Buffer.from(syntheticExport()) });
+  await dialog.getByRole('button', { name: 'Import' }).click();
+  await expect.poll(() => gh.commits.flatMap(c => c.paths)).toContain(`workouts/${RUN_ID}.json`);
+  await expect.poll(() => gh.read<{ workouts: { id?: string }[] }>('health.json').workouts.some(w => w.id === RUN_ID)).toBe(true);
+  const ws = gh.read<{ workouts: { id?: string; start: string; type: string }[] }>('health.json').workouts;
+  // every earlier workout is still there, the 12 Oct pair is one row, today's run is added once
+  expect(ws).toHaveLength(before - 1 + 1);
+  expect(ws.filter(w => w.start.startsWith('2026-10-12'))).toHaveLength(1);
+  expect(ws.filter(w => w.id === RUN_ID)).toHaveLength(1);
+  const detail = gh.read<{ route: unknown[]; hrSeries: unknown[] }>(`workouts/${RUN_ID}.json`);
+  expect(detail.route.length).toBeGreaterThan(200);
+  expect(detail.hrSeries.length).toBeGreaterThan(95);
+
+  await page.goto(`/#/activity/${RUN_ID}`);
+  await waitReady(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Morning Run' })).toBeVisible();
+  await expect(page.locator('.leaflet-container')).toBeVisible();
+  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(3);
+  await expect(page.getByRole('img', { name: 'Pace and heart rate over the workout' })).toBeVisible();
+  await expect(page.getByText('Heart-rate zones')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('Activity: feed filters, treadmill run without GPS, legacy workout links redirect', async ({ page }) => {
+  await setup(page);
+  await page.goto('/#/activity?type=walk');
+  await waitReady(page);
+  await expect(page.getByRole('link', { name: /Evening Walk/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Morning Run/ })).toHaveCount(0);
+  await page.goto(`/#/activity/${TREADMILL}`);
+  await waitReady(page);
+  await expect(page.getByText(/No GPS for this workout \(indoor\)/)).toBeVisible();
+  await expect(page.locator('.leaflet-container')).toHaveCount(0);
+  await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(3);
+  await page.goto('/#/health/workouts');
+  await expect(page).toHaveURL(/#\/activity$/);
+  await page.goto('/#/health/workout/2026-10-21_sa5');
+  await expect(page).toHaveURL(/#\/activity\/2026-10-21_sa5$/);
 });

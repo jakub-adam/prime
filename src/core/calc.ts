@@ -2,7 +2,8 @@
    Epley e1RM, Riegel 10 km projection, 7-day rolling weight average. */
 import { addDays, daysBetween, mondayOf, range } from './dates';
 import { DEFAULT_SLEEP_GOAL_H, DEFAULT_STEPS_GOAL } from './ops';
-import type { Activity, DataFiles, Exercise, ExerciseKind, HealthDay, Meal, Session, SetEntry, Settings } from './types';
+import { DEFAULT_MAX_HR, DEFAULT_PRIVACY_M, idOf, mergeWorkouts } from './workout';
+import type { Activity, DataFiles, HealthWorkout, Exercise, ExerciseKind, HealthDay, Meal, Session, SetEntry, Settings } from './types';
 
 export const sum = (a: (number | null | undefined)[]) => a.reduce<number>((s, x) => s + (x || 0), 0);
 export const avg = (a: (number | null | undefined)[]) => {
@@ -24,6 +25,10 @@ export function goals(s: Settings) {
     tenKGoalMin: s.tenKGoalMin || 45,
     stepsGoal: s.stepsGoal || DEFAULT_STEPS_GOAL,
     sleepGoalH: s.sleepGoalH || DEFAULT_SLEEP_GOAL_H,
+    maxHr: s.maxHr || DEFAULT_MAX_HR,
+    easyPaceSec: s.easyPaceSec || 390,
+    importRoutes: s.importRoutes !== false,
+    routePrivacyM: s.routePrivacyM ?? DEFAULT_PRIVACY_M,
   };
 }
 
@@ -243,6 +248,8 @@ export type ActivityView = Activity & {
   watchStart?: string;
   /** Apple Health workout merged into a logged activity (same run in both sources). */
   merged?: boolean;
+  /** the Apple Health row behind it (watch workouts and merged activities) */
+  workout?: HealthWorkout;
 };
 export const isRun = (type: string) => /run/i.test(type);
 export const watchId = (start: string) => 'w' + start;
@@ -256,9 +263,10 @@ const close = (a: number | null | undefined, b: number | null | undefined, tol =
 export function allActivities(data: Pick<DataFiles, 'activities' | 'health'>): ActivityView[] {
   const logged: ActivityView[] = data.activities.activities.map(a => ({ ...a, source: 'Logged' }));
   const out = [...logged];
-  for (const w of data.health.workouts || []) {
+  // mergeWorkouts drops rows that are the same workout (same id) written with different UTC offsets.
+  for (const w of mergeWorkouts(data.health.workouts || [])) {
     const v: ActivityView = {
-      id: watchId(w.start),
+      id: idOf(w),
       date: w.start.slice(0, 10),
       type: w.type.replace(/([a-z])([A-Z])/g, '$1 $2'),
       durationSec: Math.round(w.durationMin * 60),
@@ -267,12 +275,14 @@ export function allActivities(data: Pick<DataFiles, 'activities' | 'health'>): A
       kcal: w.activeKcal,
       source: 'Apple Watch',
       watchStart: w.start,
+      workout: w,
     };
     const twin = logged.find(a => !a.merged && a.date === v.date && typeKey(a.type) === typeKey(v.type) &&
       (close(a.distanceKm, v.distanceKm) || close(a.durationSec, v.durationSec)));
     if (twin) {
       twin.merged = true;
       twin.watchStart = w.start;
+      twin.workout = w;
       if (twin.avgHr == null && v.avgHr != null) twin.avgHr = v.avgHr;
       if (twin.kcal == null) twin.kcal = v.kcal ?? null;
     } else out.push(v);
@@ -304,7 +314,7 @@ export function weekStrip(data: DataFiles, monday: string, today: string): WeekD
   return range(monday, 7).map(date => {
     const items: WeekItem[] = [
       ...data.training.sessions.filter(s => s.date === date).map(s => ({ kind: 'session' as const, id: s.id, label: s.name, href: `/train/session/${encodeURIComponent(s.id)}` })),
-      ...acts.filter(a => a.date === date).map(a => ({ kind: 'activity' as const, id: a.id, label: activityLabel(a), href: `/health/workout/${encodeURIComponent(a.id)}` })),
+      ...acts.filter(a => a.date === date).map(a => ({ kind: 'activity' as const, id: a.id, label: activityLabel(a), href: `/activity/${encodeURIComponent(a.id)}` })),
     ];
     const state = items.length ? 'logged' : date < today ? 'rest' : 'empty';
     return { date, items, state, isToday: date === today, isFuture: date > today };

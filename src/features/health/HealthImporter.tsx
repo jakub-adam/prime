@@ -1,7 +1,7 @@
 import { HeartPulse, Loader2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { engine, useData } from '@/app/store';
+import { engine, useData, useGoals } from '@/app/store';
 import { fmtShort } from '@/core/dates';
 import type { HealthImport } from '@/core/health-import';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,26 @@ type Msg = { type: 'progress'; p: number } | { type: 'done'; res: HealthImport }
 
 /** Choose export.zip / export.xml, parse it in a worker, merge the daily totals into health.json. */
 export function HealthImporter({ onDone }: { onDone?: () => void }) {
+  const g = useGoals();
   const [file, setFile] = useState<File | null>(null);
+  const [unsaved, setUnsaved] = useState<HealthImport['details'] | null>(null);
+  /** Workout series go to workouts/<id>.json in one commit; health.json gets the summaries. */
+  const saveDetails = async (details: HealthImport['details'], summary: string) => {
+    const n = Object.keys(details).length;
+    if (!n) { setStatus(summary); return true; }
+    setStatus(`${summary} Saving ${n} workout${n === 1 ? '' : 's'} with routes and heart rate…`);
+    try {
+      await engine.saveWorkoutDetails(details);
+      setUnsaved(null);
+      setStatus(`${summary} Saved ${n} workout detail file${n === 1 ? '' : 's'}.`);
+      return true;
+    } catch (err) {
+      setUnsaved(details);
+      setStatus(`${summary} Workout details weren’t saved: ${(err as Error)?.message || 'error'}. Retry below.`);
+      toast.error('Workout details weren’t saved. Retry from the import panel.');
+      return false;
+    }
+  };
   const [progress, setProgress] = useState<number | null>(null);
   const [status, setStatus] = useState('');
   const run = () => {
@@ -24,19 +43,20 @@ export function HealthImporter({ onDone }: { onDone?: () => void }) {
       w.terminate();
       setProgress(null);
       if (m.type === 'error') { setStatus(`Import failed: ${m.message}`); toast.error(`Import failed: ${m.message}`); return; }
-      setStatus(`Imported ${Object.keys(m.res.days).length} days and ${m.res.workouts.length} workouts.`);
+      const summary = `Imported ${Object.keys(m.res.days).length} days and ${m.res.workouts.length} workouts.`;
+      setStatus(summary);
       engine.commit('health', [{ t: 'health', days: m.res.days, workouts: m.res.workouts, at: new Date().toISOString() }], 'Apple Health imported');
-      onDone?.();
+      void saveDetails(m.res.details, summary).then(ok => { if (ok) onDone?.(); });
     };
     w.onerror = ev => { w.terminate(); setProgress(null); setStatus(`Import failed: ${ev.message}`); };
-    w.postMessage(file);
+    w.postMessage({ file, opts: { maxHr: g.maxHr, routes: g.importRoutes } });
   };
   return (
     <div>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-muted">
         <li>iPhone: Health app → your profile picture → Export All Health Data.</li>
         <li>Save export.zip to Files or send it to your PC.</li>
-        <li>Choose it below and press Import. It stays on your device; only daily totals, sleep stages and workouts are saved.</li>
+        <li>Choose it below and press Import. It stays on your device; only daily totals, sleep stages and workouts (with splits, heart rate{g.importRoutes ? ' and GPS routes' : ''}) are saved to your private repo.</li>
       </ol>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <label className="flex h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[10px] border border-dashed border-line-strong px-3 text-sm hover:bg-surface-2 focus-within:ring-[3px] focus-within:ring-lane/25">
@@ -52,6 +72,7 @@ export function HealthImporter({ onDone }: { onDone?: () => void }) {
         </div>
       ) : null}
       <p className="mt-2 text-sm text-muted" aria-live="polite">{status}</p>
+      {unsaved ? <Button variant="secondary" size="sm" className="mt-2" onClick={() => void saveDetails(unsaved, 'Retrying.')}>Retry saving workout details</Button> : null}
     </div>
   );
 }

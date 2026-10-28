@@ -35,12 +35,13 @@ describe('applyOps', () => {
     expect((d.meals as Meal[]).map(m => [m.id, m.kcal])).toEqual([['a', 900], ['c', 500]]);
     expect(d.note).toBe(1);
   });
-  it('merges health imports by day and workout start, sorted', () => {
-    const d = { days: { '2026-10-02': { steps: 1 }, '2026-10-01': { steps: 2 } }, workouts: [{ start: 'b', type: 'x' }, { start: 'a', type: 'old' }] } as Record<string, unknown>;
-    applyOps(d, [{ t: 'health', days: { '2026-10-02': { steps: 9 } }, workouts: [{ start: 'a', type: 'new', durationMin: 1, distanceKm: null, activeKcal: null, avgHr: null }], at: 'now' }]);
+  it('merges health imports by day and workout id, sorted', () => {
+    const d = { days: { '2026-10-02': { steps: 1 }, '2026-10-01': { steps: 2 } }, workouts: [{ start: '2026-10-02 08:00:00 +0200', type: 'Walking' }, { start: '2026-10-01 08:00:00 +0200', type: 'Running', note: 'old' }] } as Record<string, unknown>;
+    applyOps(d, [{ t: 'health', days: { '2026-10-02': { steps: 9 } }, workouts: [{ start: '2026-10-01 07:00:00 +0100', type: 'Running', durationMin: 1, distanceKm: null, activeKcal: null, avgHr: null }], at: 'now' }]);
     expect(Object.keys(d.days as object)).toEqual(['2026-10-01', '2026-10-02']);
     expect((d.days as Record<string, { steps: number }>)['2026-10-02']!.steps).toBe(9);
-    expect((d.workouts as { start: string; type: string }[]).map(w => w.type)).toEqual(['new', 'x']);
+    // the same instant at another UTC offset is one row: the new fields win, the old note stays
+    expect((d.workouts as { type: string; note?: string; durationMin?: number }[]).map(w => [w.type, w.note, w.durationMin])).toEqual([['Running', 'old', 1], ['Walking', undefined, undefined]]);
     expect(d.importedAt).toBe('now');
   });
 });

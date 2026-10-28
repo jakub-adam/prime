@@ -183,7 +183,7 @@ function RecentWorkouts({ className }: { className?: string }) {
   const today = useToday();
   const items = useMemo(() => {
     const s = data.training.sessions.map(x => ({ date: x.date, id: x.id, to: `/train/session/${encodeURIComponent(x.id)}`, title: x.name, sub: `${x.exercises.length} exercises · ${sessionSets(x)} sets`, kind: 'session' as const }));
-    const a = allActivities(data).map(x => ({ date: x.date, id: x.id, to: `/health/workout/${encodeURIComponent(x.id)}`, title: activityLabel(x), sub: [fmtDur(x.durationSec), x.source === 'Apple Watch' || x.merged ? 'Apple Watch' : null].filter(Boolean).join(' · '), kind: 'activity' as const }));
+    const a = allActivities(data).map(x => ({ date: x.date, id: x.id, to: `/activity/${encodeURIComponent(x.id)}`, title: activityLabel(x), sub: [fmtDur(x.durationSec), x.source === 'Apple Watch' || x.merged ? 'Apple Watch' : null].filter(Boolean).join(' · '), kind: 'activity' as const }));
     return [...s, ...a].sort(byDateDesc).slice(0, 6);
   }, [data]);
   return (
@@ -233,13 +233,13 @@ function TenKCard({ className }: { className?: string }) {
             <div className="lane-track relative mt-3 h-2.5 overflow-hidden rounded-full" aria-hidden>
               <div className="absolute inset-y-0 left-0 rounded-full bg-track" style={{ width: `${Math.max(4, Math.min(100, (goalSec / proj.sec) * 100))}%` }} />
             </div>
-            <Link to={`/health/workout/${encodeURIComponent(proj.from.id)}`} className="mt-3 text-[13px] text-muted hover:text-ink hover:underline">
+            <Link to={`/activity/${encodeURIComponent(proj.from.id)}`} className="mt-3 text-[13px] text-muted hover:text-ink hover:underline">
               From {activityLabel(proj.from)} on {fmtShort(proj.from.date)} (Riegel)
             </Link>
           </>
         ) : <p className="mt-2 text-sm text-muted">Log a run of 2 km or more in the last 6 weeks to get a projection.</p>}
         <div className="mt-auto pt-3">
-          <Button asChild variant="secondary" size="sm" className="w-full"><Link to="/health/workouts"><Timer /> Runs and pace</Link></Button>
+          <Button asChild variant="secondary" size="sm" className="w-full"><Link to="/activity/progress"><Timer /> Runs and pace</Link></Button>
         </div>
       </CardBody>
     </Card>

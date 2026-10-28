@@ -25,7 +25,7 @@ export function b64decode(b64: string) {
 }
 
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
-export type RepoInfo = { private?: boolean; permissions?: { push?: boolean }; full_name?: string; html_url?: string };
+export type RepoInfo = { private?: boolean; permissions?: { push?: boolean }; full_name?: string; html_url?: string; default_branch?: string };
 
 export class GitHubClient {
   constructor(private cfg: GhConfig, private fetchImpl: FetchLike = (u, i) => fetch(u, i)) {}
@@ -59,6 +59,44 @@ export class GitHubClient {
     } catch (e) {
       if (e instanceof GhError && e.status === 404) return { data: clone(defaults()[file]), sha: null };
       throw e;
+    }
+  }
+
+  /** Any JSON file by path (e.g. workouts/<id>.json); null when it doesn't exist. */
+  async getJSON<T>(path: string): Promise<T | null> {
+    try {
+      const j = await this.api<{ content: string }>(`/contents/${path.split('/').map(encodeURIComponent).join('/')}`);
+      return JSON.parse(b64decode(j.content)) as T;
+    } catch (e) {
+      if (e instanceof GhError && e.status === 404) return null;
+      throw e;
+    }
+  }
+
+  /** Writes several files in one commit (Git Data API). Retries when another writer moved the
+      branch in between. Returns false when nothing changed. */
+  async commitFiles(files: { path: string; content: string }[], message: string): Promise<boolean> {
+    if (!files.length) return false;
+    const branch = (await this.repoInfo()).default_branch || 'main';
+    for (let attempt = 0; ; attempt++) {
+      const ref = await this.api<{ object: { sha: string } }>(`/git/ref/heads/${branch}`);
+      const head = await this.api<{ tree: { sha: string } }>(`/git/commits/${ref.object.sha}`);
+      const tree = await this.api<{ sha: string }>('/git/trees', {
+        method: 'POST',
+        body: JSON.stringify({ base_tree: head.tree.sha, tree: files.map(f => ({ path: f.path, mode: '100644', type: 'blob', content: f.content })) }),
+      });
+      if (tree.sha === head.tree.sha) return false;
+      const commit = await this.api<{ sha: string }>('/git/commits', {
+        method: 'POST',
+        body: JSON.stringify({ message, tree: tree.sha, parents: [ref.object.sha] }),
+      });
+      try {
+        await this.api(`/git/refs/heads/${branch}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha, force: false }) });
+        return true;
+      } catch (e) {
+        if (e instanceof GhError && e.status === 422 && attempt < 3) continue;
+        throw e;
+      }
     }
   }
 

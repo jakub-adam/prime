@@ -124,7 +124,7 @@ function TrainingCard({ date }: { date: string }) {
             ))}
             {acts.map(a => (
               <li key={a.id}>
-                <RowLink to={`/health/workout/${encodeURIComponent(a.id)}`}>
+                <RowLink to={`/activity/${encodeURIComponent(a.id)}`}>
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-lane-soft text-lane-ink"><Footprints aria-hidden className="size-5" /></span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{activityLabel(a)}</div>

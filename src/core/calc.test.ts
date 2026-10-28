@@ -34,7 +34,7 @@ describe('formulas', () => {
     expect(rollingAvg(s, '2026-10-24')).toBe(86);
   });
   it('goal defaults', () => {
-    expect(goals(defaults().settings)).toEqual({ kcal: 2350, protein: 160, goalWeight: 79, tenKGoalMin: 45, stepsGoal: 8000, sleepGoalH: 7 });
+    expect(goals(defaults().settings)).toEqual({ kcal: 2350, protein: 160, goalWeight: 79, tenKGoalMin: 45, stepsGoal: 8000, sleepGoalH: 7, maxHr: 202, easyPaceSec: 390, importRoutes: true, routePrivacyM: 200 });
   });
 });
 
@@ -85,7 +85,7 @@ describe('activities and the week strip', () => {
 
   it('merges the same run from both sources', () => {
     const acts = allActivities(d);
-    expect(acts.map(a => a.id)).toEqual(['w2026-10-22 18:00:00 +0200', 'w2026-10-22 07:00:00 +0200', 'r1']);
+    expect(acts.map(a => a.id)).toEqual(['Walking_20261022T160000Z', 'Running_20261022T050000Z', 'r1']);
     const r1 = acts.find(a => a.id === 'r1')!;
     expect(r1.merged).toBe(true);
     expect(r1.avgHr).toBe(158);

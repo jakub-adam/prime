@@ -68,4 +68,12 @@
  <Workout workoutActivityType="HKWorkoutActivityTypeTraditionalStrengthTraining" duration="3720" durationUnit="s" sourceName="Watch" startDate="2026-10-19 17:00:00 +0200" endDate="2026-10-19 18:02:00 +0200">
   <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" startDate="2026-10-19 17:00:00 +0200" endDate="2026-10-19 18:02:00 +0200" sum="288.6" unit="kcal"/>
  </Workout>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Watch" unit="count/min" startDate="2026-10-19 18:31:00 +0200" endDate="2026-10-19 18:31:00 +0200" value="112"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Watch" unit="count/min" startDate="2026-10-19 18:35:00 +0200" endDate="2026-10-19 18:35:00 +0200" value="125"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Watch" unit="count/min" startDate="2026-10-19 18:41:00 +0200" endDate="2026-10-19 18:41:00 +0200" value="98"/>
+ <Workout workoutActivityType="HKWorkoutActivityTypeWalking" duration="10" durationUnit="min" sourceName="Watch" startDate="2026-10-19 18:30:00 +0200" endDate="2026-10-19 18:40:00 +0200">
+  <MetadataEntry key="HKIndoorWorkout" value="0"/>
+  <MetadataEntry key="HKElevationAscended" value="840 cm"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceWalkingRunning" startDate="2026-10-19 18:30:00 +0200" endDate="2026-10-19 18:40:00 +0200" sum="0.92" unit="km"/>
+ </Workout>
 </HealthData>

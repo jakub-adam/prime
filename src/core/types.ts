@@ -62,13 +62,71 @@ export type HealthDay = {
   [k: string]: number | undefined;
 };
 
+/** One km split; the last one can be partial (`km` is then the total distance, e.g. 2.54). */
+export type Split = { km: number; durationSec: number; paceSecPerKm: number; avgHr?: number; maxHr?: number };
+/** Seconds in each heart-rate zone (% of `hrZonesMaxHr`: <60, 60–70, 70–80, 80–90, ≥90). */
+export type HrZones = { z1: number; z2: number; z3: number; z4: number; z5: number };
+/** Fastest time (s) for each distance anywhere inside a run. */
+export type BestEfforts = Partial<Record<'1k' | '3k' | '5k' | '10k', number>>;
+export type RoutePoint = { lat: number; lng: number; tSec: number; ele?: number };
+
+/** Apple Health workout. The first six keys are the original format; everything after them is
+    optional and only present for workouts imported by v2.1 or later. */
 export type HealthWorkout = {
   type: string;
+  /** start as written by the export (local time with offset); the UTC instant is in `id` */
   start: string;
   durationMin: number;
   distanceKm: number | null;
   activeKcal: number | null;
   avgHr: number | null;
+  /** type + start in UTC, e.g. "Running_20261028T084946Z"; rows without it get it computed */
+  id?: string;
+  /** ISO 8601 in UTC */
+  endTime?: string;
+  durationSec?: number;
+  maxHr?: number;
+  minHr?: number;
+  elevationGainM?: number;
+  /** steps per minute (running) */
+  avgCadence?: number;
+  avgPaceSecPerKm?: number;
+  splits?: Split[];
+  hrZones?: HrZones;
+  hrZonesMaxHr?: number;
+  recoveryHr?: { after1Min?: number; after2Min?: number };
+  bestEfforts?: BestEfforts;
+  /** [pace s/km bucket, avg HR, seconds] for "HR at a fixed easy pace" */
+  paceHr?: [number, number, number][];
+  /** about 48 route points as a Google encoded polyline, for list previews */
+  routePreview?: string;
+  /** path of the file with the full series in the data repo, e.g. "workouts/<id>.json" */
+  detail?: string;
+  indoor?: boolean;
+  source?: string;
+  steps?: number;
+  basalKcal?: number;
+  avgPowerW?: number;
+  avgGroundContactMs?: number;
+  avgVerticalOscCm?: number;
+  avgStrideM?: number;
+  avgSpeedKmh?: number;
+  maxSpeedKmh?: number;
+  avgMets?: number;
+  timeZone?: string;
+  [k: string]: unknown;
+};
+
+/** workouts/<id>.json in the data repo: the heavy per-workout series, loaded on the detail page only. */
+export type WorkoutDetail = {
+  id: string;
+  /** heart rate, one point per 10 s */
+  hrSeries: { tSec: number; bpm: number }[];
+  /** cumulative distance, one point per 10 s (pace is derived from it) */
+  distSeries: { tSec: number; km: number }[];
+  /** GPS route, about one point per 4 s */
+  route?: RoutePoint[];
+  [k: string]: unknown;
 };
 
 export type Settings = {
@@ -77,6 +135,14 @@ export type Settings = {
   tenKGoalMin: number;
   stepsGoal?: number;
   sleepGoalH?: number;
+  /** max heart rate for workout zones (default 202) */
+  maxHr?: number;
+  /** easy pace (s/km) for the "HR at easy pace" trend (default 390 = 6:30) */
+  easyPaceSec?: number;
+  /** store GPS routes on import (default true) */
+  importRoutes?: boolean;
+  /** metres hidden at both ends of every route on maps (default 200, 0 = off) */
+  routePrivacyM?: number;
   [k: string]: unknown;
 };
 

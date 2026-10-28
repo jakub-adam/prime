@@ -1,4 +1,5 @@
 import type { DataFiles } from './types';
+import { mergeWorkouts } from './workout';
 
 const cell = (v: unknown) => {
   if (v == null) return '';
@@ -46,8 +47,10 @@ export const CSV_DATASETS: CsvDataset[] = [
     },
   },
   {
-    key: 'health-workouts', label: 'Apple Health workouts', count: d => (d.health.workouts || []).length,
-    build: d => toCsv(['type', 'start', 'durationMin', 'distanceKm', 'activeKcal', 'avgHr'],
-      (d.health.workouts || []).map(w => [w.type, w.start, w.durationMin, w.distanceKm, w.activeKcal, w.avgHr])),
+    key: 'health-workouts', label: 'Apple Health workouts', count: d => mergeWorkouts(d.health.workouts || []).length,
+    build: d => {
+      const cols = ['id', 'type', 'start', 'endTime', 'durationMin', 'durationSec', 'distanceKm', 'avgPaceSecPerKm', 'activeKcal', 'avgHr', 'maxHr', 'minHr', 'elevationGainM', 'avgCadence'] as const;
+      return toCsv([...cols], mergeWorkouts(d.health.workouts || []).map(w => cols.map(c => w[c] as string | number | null | undefined)));
+    },
   },
 ];

@@ -18,7 +18,12 @@ Per day (only what the export contains):
   mindful    mindful minutes
   sleep      hours asleep (credited to the morning you woke up), hours per stage
              (core, deep, REM, awake) and bed/wake clock times
-Workouts: type, start, duration, distance, energy, average heart rate.
+Workouts: type, start, duration, distance, energy, heart rate (average, max, min; from the
+heart-rate samples when the watch saved no summary), plus `id` (type + start in UTC),
+`endTime` (UTC) and `durationSec`. Workouts are matched by `id`, so the same workout exported
+with a different UTC offset (after a daylight saving change) replaces the old row instead of
+being added twice, and keys other tools added to a row are kept. Splits, HR series and zones,
+recovery HR and GPS routes come from the in-app importer only.
 
 The app's in-browser importer (src/core/health-import.ts) follows the same rules.
 """
@@ -28,7 +33,8 @@ import sys
 import zipfile
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from datetime import datetime, timedelta
+from bisect import bisect_left
+from datetime import datetime, timedelta, timezone
 
 PREFIXES = ("HKQuantityTypeIdentifier", "HKCategoryTypeIdentifier", "HKDataType")
 ASLEEP = {
@@ -131,6 +137,37 @@ def convert(v, conv, unit):
     return v
 
 
+DIST_TYPES = ("DistanceWalkingRunning", "DistanceCycling", "DistanceSwimming")
+
+
+def utc(dt):
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_any(s):
+    try:
+        return parse_dt(s)
+    except ValueError:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+
+def workout_id(type_, start):
+    return f"{type_}_{utc(parse_any(start)).replace('-', '').replace(':', '')}"
+
+
+def row_id(w):
+    return w.get("id") or workout_id(w["type"], w["start"])
+
+
+def merge_workouts(existing, incoming):
+    """One row per id, oldest first; later rows win field by field (same as mergeWorkouts in the app)."""
+    by_id = {}
+    for w in existing + incoming:
+        i = row_id(w)
+        by_id[i] = {**by_id.get(i, {}), **w, "id": i}
+    return sorted(by_id.values(), key=lambda w: parse_any(w["start"]))
+
+
 def clock_min(s, day):
     """Clock time of s in minutes after midnight of day (negative = the evening before)."""
     m = int(s[11:13]) * 60 + int(s[14:16])
@@ -142,6 +179,7 @@ def main(src, dst):
     sums = defaultdict(float)
     means = defaultdict(list)
     hr = defaultdict(list)
+    hr_samples = []  # (epoch seconds, bpm) for workout heart rate
     stand_hours = defaultdict(int)
     sleep = defaultdict(list)  # source -> [start, end, start string, end string]
     stages = defaultdict(lambda: defaultdict(list))  # source -> stage key -> [start, end]
@@ -167,6 +205,7 @@ def main(src, dst):
                     means[(day, key)].append(convert(float(el.get("value", 0)), conv, unit))
                 elif t == "HeartRate":
                     hr[day].append(float(el.get("value", 0)))
+                    hr_samples.append((parse_dt(start).timestamp(), float(el.get("value", 0))))
                 elif t == "AppleStandHour":
                     if el.get("value") == "HKCategoryValueAppleStandHourStood":
                         stand_hours[day] += 1
@@ -181,19 +220,22 @@ def main(src, dst):
                 el.clear()
             elif el.tag == "Workout":
                 stats = {short(s.get("type", "")): s for s in el.findall("WorkoutStatistics")}
-                dist = stats.get("DistanceWalkingRunning")
+                type_ = el.get("workoutActivityType", "").replace("HKWorkoutActivityType", "")
+                dist_type = next((k for k in DIST_TYPES if stats.get(k) is not None and stats[k].get("sum")), None)
+                dist = stats.get(dist_type) if dist_type else None
                 energy = stats.get("ActiveEnergyBurned")
-                whr = stats.get("HeartRate")
                 dur = float(el.get("duration", 0))
                 if el.get("durationUnit") == "s":
                     dur /= 60
                 workouts.append({
-                    "type": el.get("workoutActivityType", "").replace("HKWorkoutActivityType", ""),
+                    "type": type_,
                     "start": el.get("startDate"),
+                    "end": el.get("endDate"),
                     "durationMin": rnd(dur, 1),
-                    "distanceKm": rnd(km(dist.get("sum"), dist.get("unit")), 2) if dist is not None and dist.get("sum") else None,
+                    "durationSec": rnd(dur * 60),
+                    "distanceKm": rnd(km(dist.get("sum"), dist.get("unit")), 2) if dist is not None else None,
                     "activeKcal": rnd(float(energy.get("sum"))) if energy is not None and energy.get("sum") else None,
-                    "avgHr": rnd(float(whr.get("average"))) if whr is not None and whr.get("average") else None,
+                    "hr": stats.get("HeartRate"),
                 })
                 el.clear()
 
@@ -252,22 +294,49 @@ def main(src, dst):
                 days[d].setdefault("sleepStartMin", clock_min(n["start_str"], d))
                 days[d]["sleepEndMin"] = clock_min(n["end_str"], d)
 
+    # Workout rows: summary heart rate from the watch, else the samples during the workout.
+    hr_samples.sort()
+    hr_t = [t for t, _ in hr_samples]
+    rows = []
+    for w in workouts:
+        s_dt = parse_dt(w["start"])
+        e_dt = parse_dt(w["end"]) if w["end"] else s_dt + timedelta(minutes=w["durationMin"])
+        lo, hi = bisect_left(hr_t, s_dt.timestamp()), bisect_left(hr_t, e_dt.timestamp() + 0.001)
+        inside = [v for _, v in hr_samples[lo:hi]]
+        h = w["hr"]
+        stat = lambda k: float(h.get(k)) if h is not None and h.get(k) else None
+        row = {
+            "type": w["type"],
+            "start": w["start"],
+            "durationMin": w["durationMin"],
+            "distanceKm": w["distanceKm"],
+            "activeKcal": w["activeKcal"],
+            "avgHr": rnd(stat("average")) if stat("average") else rnd(sum(inside) / len(inside)) if inside else None,
+            "id": workout_id(w["type"], w["start"]),
+            "endTime": utc(e_dt),
+            "durationSec": w["durationSec"],
+        }
+        mx = stat("maximum") or (max(inside) if inside else None)
+        mn = stat("minimum") or (min(inside) if inside else None)
+        if mx is not None:
+            row["maxHr"] = rnd(mx)
+        if mn is not None:
+            row["minHr"] = rnd(mn)
+        rows.append(row)
+    workouts = rows
+
     try:
-        with open(dst) as f:
+        with open(dst, encoding="utf-8") as f:
             existing = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         existing = {"days": {}, "workouts": []}
 
     existing.setdefault("days", {}).update({d: days[d] for d in sorted(days)})
-    seen = {w["start"] for w in workouts}
-    existing["workouts"] = sorted(
-        [w for w in existing.get("workouts", []) if w["start"] not in seen] + workouts,
-        key=lambda w: w["start"],
-    )
+    existing["workouts"] = merge_workouts(existing.get("workouts", []), workouts)
     existing["importedAt"] = datetime.now().astimezone().isoformat(timespec="seconds")
     existing["days"] = dict(sorted(existing["days"].items()))
 
-    with open(dst, "w") as f:
+    with open(dst, "w", encoding="utf-8", newline="\n") as f:
         json.dump(existing, f, indent=1, ensure_ascii=False)
     print(f"{len(days)} days, {len(workouts)} workouts -> {dst}")
 

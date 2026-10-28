@@ -44,6 +44,9 @@
    "bodyFatPct": 18.3,
    "wristTempC": 35.6,
    "sixMinWalkM": 612.3,
+   "hrAvg": 112,
+   "hrMin": 98,
+   "hrMax": 125,
    "sleepH": 6.6,
    "sleepCoreH": 6.6,
    "sleepStartMin": -5,
@@ -57,7 +60,12 @@
    "durationMin": 31.9,
    "distanceKm": 5.18,
    "activeKcal": 402,
-   "avgHr": 158
+   "avgHr": 158,
+   "id": "Running_20261018T050512Z",
+   "endTime": "2026-10-18T05:37:04Z",
+   "durationSec": 1912,
+   "maxHr": 181,
+   "minHr": 120
   },
   {
    "type": "TraditionalStrengthTraining",
@@ -65,8 +73,24 @@
    "durationMin": 62.0,
    "distanceKm": null,
    "activeKcal": 289,
-   "avgHr": null
+   "avgHr": null,
+   "id": "TraditionalStrengthTraining_20261019T150000Z",
+   "endTime": "2026-10-19T16:02:00Z",
+   "durationSec": 3720
+  },
+  {
+   "type": "Walking",
+   "start": "2026-10-19 18:30:00 +0200",
+   "durationMin": 10.0,
+   "distanceKm": 0.92,
+   "activeKcal": null,
+   "avgHr": 119,
+   "id": "Walking_20261019T163000Z",
+   "endTime": "2026-10-19T16:40:00Z",
+   "durationSec": 600,
+   "maxHr": 125,
+   "minHr": 112
   }
  ],
- "importedAt": "2026-10-25T14:11:22+01:00"
+ "importedAt": "2026-10-28T10:47:44+01:00"
 }
