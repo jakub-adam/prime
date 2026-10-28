@@ -26,7 +26,19 @@ window.addEventListener('online', () => engine.retryPending());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') engine.onVisible(); });
 void engine.load();
 
-if (import.meta.env.PROD) registerSW({ immediate: true });
+/* A home-screen app resumed from the background never navigates, so the browser never re-checks sw.js.
+   Check for a new version whenever the app comes back to the foreground, and hourly; autoUpdate then reloads. */
+if (import.meta.env.PROD) {
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_url, reg) {
+      if (!reg) return;
+      const check = () => { if (navigator.onLine) void reg.update().catch(() => {}); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+      setInterval(check, 60 * 60 * 1000);
+    },
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
