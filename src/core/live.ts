@@ -1,6 +1,6 @@
 /* Live Apple Health data from the iPhone Shortcut.
-   The Shortcut runs when Prime is opened and writes inbox/health_<date>[_HHMMSS].json to the data
-   repo. Most values are the raw samples of the day joined by newlines (e.g. steps per interval), so
+   The Shortcut runs when Prime is opened and writes inbox/latest.json (older versions wrote
+   inbox/health_<date>[_HHMMSS].json) to the data repo. Most values are the raw samples of the day joined by newlines (e.g. steps per interval), so
    they are summed or averaged here. The result is display only: it is merged over that day's
    health.json values in the app and never written back. */
 import type { HealthDay } from './types';
@@ -75,6 +75,55 @@ function stageKey(name: string): 'sleepCoreH' | 'sleepDeepH' | 'sleepRemH' | 'sl
   return null; // "In Bed" is not sleep
 }
 
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+/** Shortcut date text such as "9 Nov 2026 at 22:48", "Nov 9, 2026 at 10:48 PM" or ISO, as local
+    epoch milliseconds, or null. */
+export function shortcutDate(s: string): number | null {
+  const t = s.trim();
+  if (!t) return null;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(t)) { const v = Date.parse(t); return Number.isFinite(v) ? v : null; }
+  const dm = /(\d{1,2})\.?\s+([A-Za-z]{3})[A-Za-z]*\.?,?\s+(\d{4})/.exec(t);
+  const md = dm ? null : /([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2}),?\s+(\d{4})/.exec(t);
+  const day = dm ? +dm[1]! : md ? +md[2]! : NaN;
+  const mon = MONTHS.indexOf((dm ? dm[2]! : md ? md[1]! : '').toLowerCase());
+  const year = dm ? +dm[3]! : md ? +md[3]! : NaN;
+  if (!Number.isFinite(day) || mon < 0 || !Number.isFinite(year)) return null;
+  const tm = /(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?/.exec(t.slice((dm ?? md)!.index + (dm ?? md)![0].length));
+  let hh = tm ? +tm[1]! : 0;
+  const ap = tm?.[4]?.toLowerCase();
+  if (ap === 'pm' && hh < 12) hh += 12;
+  if (ap === 'am' && hh === 12) hh = 0;
+  return new Date(year, mon, day, hh, tm ? +tm[2]! : 0, tm?.[3] ? +tm[3] : 0).getTime();
+}
+
+const ymd = (ms: number) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+/** Indexes of the sleep samples that make up the night ending on `date`: samples are grouped into
+    sessions split by gaps over 3 h, and the last session that ends on `date` is kept. Null when the
+    start times are missing or unreadable, so the caller falls back to counting every sample. */
+export function lastNight(starts: string[], durs: string[], date: string): Set<number> | null {
+  if (starts.length !== durs.length) return null;
+  const rows: { i: number; a: number; b: number }[] = [];
+  for (let i = 0; i < starts.length; i++) {
+    const a = shortcutDate(starts[i]!);
+    const sec = durationSec(durs[i]!);
+    if (a == null || sec == null) return null;
+    rows.push({ i, a, b: a + sec * 1000 });
+  }
+  if (!rows.length) return null;
+  rows.sort((x, y) => x.a - y.a);
+  const sessions: (typeof rows)[] = [];
+  let end = -Infinity;
+  for (const row of rows) {
+    if (row.a - end > 3 * 3600 * 1000) sessions.push([]);
+    sessions[sessions.length - 1]!.push(row);
+    end = Math.max(end, row.b);
+  }
+  const night = sessions.reverse().find(ss => ymd(Math.max(...ss.map(x => x.b))) === date);
+  return new Set((night ?? []).map(x => x.i));
+}
+
 /** Turns one Shortcut export into a health.json style day. Keys without data are left out. */
 export function parseShortcutExport(x: ShortcutExport, file = ''): LiveDay | null {
   const t = x.today ?? {};
@@ -106,12 +155,15 @@ export function parseShortcutExport(x: ShortcutExport, file = ''): LiveDay | nul
   // weight_kg is the latest weigh-in, which may be days old: it is not credited to today, or every
   // export would add a weigh-in. Weight comes from logged weigh-ins and full imports.
 
-  // Sleep: stage names and durations come as two parallel lists.
+  // Sleep: stage names, durations and (optionally) start times come as parallel lists. The export
+  // reaches back two days, so with start times only last night's samples are counted.
   const stages = String(t.sleep ?? '').split(/\r?\n/);
   const durs = String(t.sleep_duration ?? '').split(/\r?\n/);
   if (t.sleep_duration && stages.length === durs.length) {
     const h: Record<string, number> = {};
+    const keep = lastNight(String(t.sleep_start ?? '').split(/\r?\n/), durs, date);
     stages.forEach((s, i) => {
+      if (keep && !keep.has(i)) return;
       const k = stageKey(s);
       const sec = durationSec(durs[i]!);
       if (k && sec != null) h[k] = (h[k] ?? 0) + sec / 3600;

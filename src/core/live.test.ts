@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { durationSec, latestInboxFile, mergeLive, numbers, parseShortcutExport, type ShortcutExport } from './live';
+import { durationSec, lastNight, latestInboxFile, mergeLive, numbers, parseShortcutExport, shortcutDate, type ShortcutExport } from './live';
 
 /* Same shape as the Shortcut writes to inbox/ (synthetic values). */
 const EXPORT: ShortcutExport = {
@@ -66,6 +66,29 @@ describe('Shortcut inbox', () => {
     expect(d.sleepRemH).toBeCloseTo(0.49, 2);
     expect(d.sleepAwakeH).toBeCloseTo(0.04, 2);
     expect(d.sleepH).toBeCloseTo((28 * 60 + 2 + 30 + 3600 + 29 * 60 + 32) / 3600, 2);
+  });
+
+  it('counts only last night when the export reaches back several nights', () => {
+    const live = parseShortcutExport({
+      ...EXPORT,
+      today: {
+        ...EXPORT.today,
+        // night 8-9 Nov (1 h Core), then night 9-10 Nov (2 h Core + 30 min REM)
+        sleep: 'Core\nCore\nREM',
+        sleep_duration: '1:00:00\n2:00:00\n30:00',
+        sleep_start: '8 Nov 2026 at 23:00\n9 Nov 2026 at 23:00\n10 Nov 2026 at 01:00',
+      },
+    }, 'latest.json')!;
+    expect(live.day.sleepCoreH).toBe(2);
+    expect(live.day.sleepRemH).toBe(0.5);
+    expect(live.day.sleepH).toBe(2.5);
+  });
+
+  it('reads Shortcut dates and falls back when start times are missing', () => {
+    expect(new Date(shortcutDate('9 Nov 2026 at 22:48')!).getHours()).toBe(22);
+    expect(new Date(shortcutDate('Nov 9, 2026 at 10:48 PM')!).getHours()).toBe(22);
+    expect(shortcutDate('Core')).toBeNull();
+    expect(lastNight(['Core', 'Deep'], ['1:00', '2:00'], '2026-11-10')).toBeNull();
   });
 
   it('takes the date from the export when the file is latest.json', () => {
