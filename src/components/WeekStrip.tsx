@@ -43,7 +43,7 @@ function WeekSummary({ days }: { days: WeekDay[] }) {
     <dl className="mt-3 grid grid-cols-3 gap-2 @[560px]:grid-cols-5">
       {items.map(([k, v], i) => (
         <div key={k} className={cn('rounded-xl bg-surface-2 px-3 py-2', i > 2 && '@max-[559px]:hidden')}>
-          <dt className="truncate text-[11px] font-semibold tracking-wide text-muted uppercase">{k}</dt>
+          <dt className="truncate text-[11px] font-semibold text-muted">{k}</dt>
           <dd className="num text-xl leading-tight font-semibold whitespace-nowrap">{v}</dd>
         </div>
       ))}
@@ -96,7 +96,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
                 sel.date === d.date && 'ring-2 ring-lane/60',
               )}
             >
-              <span className={cn('text-[11px] font-semibold uppercase', d.isToday ? 'text-track-ink' : 'text-muted')}>{fmtDow(d.date)}</span>
+              <span className={cn('text-[11px] font-semibold', d.isToday ? 'text-track-ink' : 'text-muted')}>{fmtDow(d.date)}</span>
               <span className="num text-lg leading-none font-semibold">{fmtDom(d.date)}</span>
               <span className="sr-only">{fmtDay(d.date)}: {d.items.length ? d.items.map(i => i.label).join(', ') : d.state === 'rest' ? 'rest' : 'nothing logged'}</span>
               {d.items.length ? (
@@ -112,7 +112,7 @@ export function WeekStrip({ title }: { title?: ReactNode }) {
               d.isToday ? 'border-track bg-track-soft/50' : 'border-line bg-surface-2',
             )}>
               <Link to={`/day/${d.date}`} className="-m-1 flex items-baseline justify-between rounded-lg px-2 py-1 transition-colors hover:bg-surface-3/70">
-                <span className={cn('text-xs font-semibold uppercase', d.isToday ? 'text-track-ink' : 'text-muted')}><span className="sr-only">Open </span>{fmtDow(d.date)}</span>
+                <span className={cn('text-xs font-semibold', d.isToday ? 'text-track-ink' : 'text-muted')}><span className="sr-only">Open </span>{fmtDow(d.date)}</span>
                 <span className="num text-lg leading-none font-semibold">{fmtDom(d.date)}</span>
               </Link>
               <div className="mt-2 flex flex-1 flex-col gap-1">

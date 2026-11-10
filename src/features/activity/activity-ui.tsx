@@ -11,7 +11,7 @@ import { fmtPace, ZONES } from './activity-data';
 export function Stat({ label, value, unit, className }: { label: string; value: ReactNode; unit?: string; className?: string }) {
   return (
     <div className={cn('min-w-0', className)}>
-      <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">{label}</div>
+      <div className="text-[12px] font-semibold text-muted">{label}</div>
       <div className="mt-0.5 flex items-baseline gap-1">
         <span className="num text-[28px] leading-none font-semibold sm:text-[32px]">{value}</span>
         {unit ? <span className="text-[13px] font-medium text-muted">{unit}</span> : null}
@@ -29,7 +29,7 @@ export function SplitsTable({ splits }: { splits: Split[] }) {
     <table className="w-full text-sm">
       <caption className="sr-only">Splits per kilometre. Longer bars are faster.</caption>
       <thead>
-        <tr className="text-left text-[12px] font-semibold tracking-wide text-muted uppercase">
+        <tr className="text-left text-[12px] font-semibold text-muted">
           <th scope="col" className="w-12 py-2 font-semibold">Km</th>
           <th scope="col" className="py-2 font-semibold">Pace</th>
           {hasHr ? <th scope="col" className="w-16 py-2 text-right font-semibold">HR</th> : null}

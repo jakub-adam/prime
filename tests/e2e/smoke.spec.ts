@@ -270,3 +270,21 @@ test('Activity: feed filters, treadmill run without GPS, legacy workout links re
   await page.goto('/#/health/workout/2026-10-21_sa5');
   await expect(page).toHaveURL(/#\/activity\/2026-10-21_sa5$/);
 });
+
+test('Today shows the newest Shortcut export as live data', async ({ page }) => {
+  const gh = new MockGitHub(fixtures());
+  gh.write('inbox/health_test.json', JSON.stringify({ message: 'hi' }));
+  gh.write(`inbox/health_${TODAY}_101500.json`, JSON.stringify({
+    exported_at: `${TODAY}T10:15:00+02:00`,
+    today: { date: TODAY, steps: '4000\n2345', flights: '2\n3', heart_rate: '60\n90', sleep: 'Core\nDeep\nREM', sleep_duration: '3:00:00\n1:00:00\n1:30:00' },
+  }));
+  await setup(page, { gh });
+  await page.goto('/#/today');
+  await waitReady(page);
+  await expect(page.getByRole('status').filter({ hasText: /^Live · / })).toBeVisible();
+  const activity = page.getByRole('region', { name: 'Activity' });
+  await expect(activity.getByRole('link', { name: /Steps\s*6,345/ })).toBeVisible();
+  const sleep = page.getByRole('region', { name: 'Sleep' });
+  await expect(sleep.getByText('Last night')).toBeVisible();
+  await expect(sleep.getByText('5', { exact: true })).toBeVisible();
+});

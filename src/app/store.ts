@@ -3,6 +3,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import { goals, withStress, type Draft } from '@/core/calc';
 import { todayStr } from '@/core/dates';
+import { mergeLive } from '@/core/live';
 import { sampleData, sampleDetails } from '@/core/sample';
 import { KEYS, browserKV, readJSON, writeJSON } from '@/core/storage';
 import { SyncEngine } from '@/core/sync';
@@ -27,10 +28,31 @@ export function useGoals() {
   return useMemo(() => goals(settings), [settings]);
 }
 
-/** Apple Health days plus derived metrics (stress). Display only; never written back. */
+/** Apple Health days with today's live Shortcut values laid over them, plus derived metrics
+    (stress). Display only; never written back. */
 export function useHealthDays() {
-  const days = useData().health.days;
-  return useMemo(() => withStress(days), [days]);
+  const { data, live } = useSnapshot();
+  const days = data.health.days, importedAt = data.health.importedAt;
+  return useMemo(() => withStress(mergeLive(days, live, importedAt)), [days, live, importedAt]);
+}
+
+/** Live status for the Today header: when the Shortcut last exported and whether a check is running. */
+export function useLive() {
+  const s = useSnapshot();
+  return { live: s.live, checking: s.liveChecking, checkedAt: s.liveCheckedAt, connected: s.mode === 'github' };
+}
+
+/* ---- following the Shortcut: it runs as Prime opens and commits a few seconds later, so check
+   now and then every 15 s for 2 minutes while the app is in front ---- */
+let liveTimer: ReturnType<typeof setInterval> | undefined;
+export function followLive() {
+  clearInterval(liveTimer);
+  void engine.refreshLive();
+  let n = 0;
+  liveTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible' || ++n > 8) { clearInterval(liveTimer); return; }
+    void engine.refreshLive();
+  }, 15_000);
 }
 
 /* ---- today (updates at midnight and when the app is reopened) ---- */
@@ -77,7 +99,7 @@ const darkQuery = typeof window !== 'undefined' ? window.matchMedia('(prefers-co
 export function applyTheme() {
   const dark = theme === 'dark' || (theme === 'system' && !!darkQuery?.matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#0f151b' : '#eef1f3');
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#0a0c0f' : '#f2f3f5');
 }
 darkQuery?.addEventListener('change', () => { if (theme === 'system') applyTheme(); themeListeners.forEach(fn => fn()); });
 export const themes = {

@@ -9,6 +9,7 @@ import { FILES, applyOps, clone, defaults, serialize } from './ops';
 import { KEYS, readJSON, remove, writeJSON, type Cache, type GhConfig, type KV } from './storage';
 import type { DataFiles, FileName, Op, Pending, Shas, WorkoutDetail } from './types';
 import { detailPath } from './workout';
+import { INBOX_DIR, latestInboxFile, parseShortcutExport, type LiveDay, type ShortcutExport } from './live';
 
 /** Workout details kept in localStorage for offline viewing (most recently opened). */
 const DETAIL_CACHE_MAX = 8;
@@ -25,6 +26,10 @@ export type Snapshot = {
   pending: Pending;
   sync: SyncState;
   cachedAt: number | null;
+  /** newest Shortcut export from inbox/ (display only) */
+  live: LiveDay | null;
+  liveChecking: boolean;
+  liveCheckedAt: number | null;
 };
 
 export type ToastFn = (msg: string, kind: 'info' | 'error') => void;
@@ -57,7 +62,7 @@ export class SyncEngine {
     this.sample = opts.sample;
     this.fetchImpl = opts.fetch;
     this.toastFn = opts.toast ?? (() => {});
-    this.state = { mode: 'sample', loading: false, data: defaults(), sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null };
+    this.state = { mode: 'sample', loading: false, data: defaults(), sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null, live: null, liveChecking: false, liveCheckedAt: null };
   }
 
   /* ---- store interface (useSyncExternalStore) ---- */
@@ -99,10 +104,12 @@ export class SyncEngine {
   async load() {
     if (!this.connected()) {
       this.details = new Map(Object.entries(this.sampleDetails()));
-      this.set({ mode: 'sample', data: this.sample(), loading: false, sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null });
+      this.set({ mode: 'sample', data: this.sample(), loading: false, sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null, live: null });
       return;
     }
     const cache = readJSON<Cache>(this.kv, KEYS.cache);
+    const liveCache = readJSON<{ live: LiveDay; sha: string }>(this.kv, KEYS.live);
+    if (liveCache?.live && !this.state.live) { this.liveSha = liveCache.sha; this.set({ live: liveCache.live }); }
     if (cache && cache.data) {
       this.set({
         mode: 'github',
@@ -221,6 +228,49 @@ export class SyncEngine {
     if (this.state.mode === 'github' && !this.isBusy()) void this.load();
   }
 
+  /* ---- live Apple Health data (inbox/ from the iPhone Shortcut) ---- */
+  private liveSha: string | null = null;
+  /** tree sha of inbox/ at the last listing (memory only, so a new session always lists once) */
+  private inboxSha: string | null = null;
+  private liveBusy = false;
+  /** Fetches the newest Shortcut export if it changed. Quiet on failure: the sync chip reports real errors. */
+  async refreshLive() {
+    if (this.state.mode !== 'github' || this.liveBusy) return;
+    this.liveBusy = true;
+    this.set({ liveChecking: true });
+    try {
+      const client = this.client();
+      // The root listing gives inbox/'s tree sha: unchanged folder = nothing new, and a repo
+      // without inbox/ costs no 404 (which browsers log as a console error).
+      const inbox = (await client.listDir('')).find(e => e.name === INBOX_DIR && e.type === 'dir');
+      if (!inbox || inbox.sha === this.inboxSha) { this.set({ liveCheckedAt: Date.now() }); return; }
+      const files = (await client.listDir(INBOX_DIR)).filter(f => f.type === 'file');
+      const name = latestInboxFile(files.map(f => f.name));
+      const f = name ? files.find(x => x.name === name)! : null;
+      if (f && !(this.state.live?.file === f.name && this.liveSha === f.sha)) {
+        const x = await client.getJSON<ShortcutExport>(`${INBOX_DIR}/${f.name}`);
+        const live = x ? parseShortcutExport(x, f.name) : null;
+        if (live) {
+          this.liveSha = f.sha;
+          this.set({ live });
+          writeJSON(this.kv, KEYS.live, { live, sha: f.sha });
+        }
+      }
+      this.inboxSha = inbox.sha;
+      this.set({ liveCheckedAt: Date.now() });
+    } catch { /* offline or no access to inbox/: keep the last live values */ }
+    finally {
+      this.liveBusy = false;
+      this.set({ liveChecking: false });
+    }
+  }
+  private dropLive() {
+    remove(this.kv, KEYS.live);
+    this.liveSha = null;
+    this.inboxSha = null;
+    this.set({ live: null, liveCheckedAt: null });
+  }
+
   /* ---- settings actions ---- */
   async testConnection(cfg = this.gh()) {
     try {
@@ -276,6 +326,7 @@ export class SyncEngine {
       remove(this.kv, KEYS.cache);
       remove(this.kv, KEYS.details);
       this.details.clear();
+      this.dropLive();
       this.set({ pending: {}, sha: {} });
     }
     await this.load();
@@ -287,6 +338,7 @@ export class SyncEngine {
     remove(this.kv, KEYS.cache);
     remove(this.kv, KEYS.details);
     this.details.clear();
+    this.dropLive();
     void this.load();
   }
 

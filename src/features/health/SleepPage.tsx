@@ -122,7 +122,7 @@ function ScheduleChart({ rows, height }: { rows: NightRow[]; height: number }) {
   );
 }
 
-function StageBar({ d }: { d: HealthDay }) {
+export function StageBar({ d }: { d: HealthDay }) {
   const parts = STAGES.map(s => ({ ...s, h: d[s.key] ?? 0 })).filter(p => p.h > 0);
   const total = parts.reduce((n, p) => n + p.h, 0);
   if (!total) return null;
@@ -180,7 +180,7 @@ export function SleepPage() {
         <Card className="lg:col-span-5">
           <CardHeader title={fmtRelative(last, today) === 'Today' ? 'Last night' : `Night to ${fmtDay(last)}`} meta={lastDay.sleepStartMin != null && lastDay.sleepEndMin != null ? `${clock(lastDay.sleepStartMin)} – ${clock(lastDay.sleepEndMin)}` : fmtDay(last)} />
           <CardBody>
-            <div className="text-[13px] font-semibold tracking-wide text-muted uppercase">Time asleep</div>
+            <div className="text-[13px] font-semibold text-muted">Time asleep</div>
             <div className="num text-[44px] leading-none font-semibold">{hm(lastDay.sleepH)}</div>
             <div className={cn('mt-1 text-sm font-semibold', (lastDay.sleepH ?? 0) >= g.sleepGoalH ? 'text-good' : 'text-muted')}>
               {(lastDay.sleepH ?? 0) >= g.sleepGoalH ? 'Goal reached' : `${hm(g.sleepGoalH - (lastDay.sleepH ?? 0))} under your ${fmt(g.sleepGoalH, 1)} h goal`}
@@ -225,7 +225,7 @@ export function SleepPage() {
           <CardBody><ScheduleChart rows={rows} height={260} /></CardBody>
         </Card>
         <section aria-labelledby="sleep-related-h" className="lg:col-span-12">
-          <h2 id="sleep-related-h" className="mb-3 font-display text-[22px] font-semibold uppercase">During sleep</h2>
+          <h2 id="sleep-related-h" className="mb-3 text-[22px] font-semibold tracking-tight">During sleep</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(['respiratoryRate', 'spo2', 'wristTempC', 'hrv'] as const).filter(k => Object.values(days).some(d => d[k] != null)).map(k => <HealthCard key={k} k={k} />)}
           </div>

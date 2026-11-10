@@ -45,11 +45,11 @@ export function ThemeToggle({ className }: { className?: string }) {
 function Sidebar() {
   const { pathname } = useLocation();
   return (
-    <aside className="hidden shrink-0 self-stretch border-r border-line bg-surface/70 md:block md:w-[88px] xl:w-[248px]">
+    <aside className="hidden shrink-0 self-stretch border-r border-line/70 bg-surface/60 md:block md:w-[88px] xl:w-[248px]">
       <div className="sticky top-0 flex h-dvh flex-col">
       <Link to="/today" className="flex h-[72px] items-center gap-3 px-6 max-xl:justify-center max-xl:px-0" aria-label="Prime home">
         <BrandMark className="size-9 shrink-0" />
-        <span className="font-display text-[26px] font-bold tracking-wide uppercase max-xl:hidden">Prime</span>
+        <span className="text-[26px] font-bold tracking-tight max-xl:hidden">Prime</span>
       </Link>
       <nav aria-label="Sections" className="flex flex-1 flex-col gap-1 px-3 pt-2">
         {NAV.map(({ to, label, icon: Icon }, i) => {
@@ -83,11 +83,11 @@ function Sidebar() {
 
 function TopBar() {
   return (
-    <div className="sticky top-0 z-30 border-b border-line/70 bg-bg/85 backdrop-blur-md pt-safe md:hidden">
+    <div className="sticky top-0 z-30 border-b border-line/60 bg-bg/80 backdrop-blur-xl backdrop-saturate-150 pt-safe md:hidden">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <Link to="/today" className="flex items-center gap-2.5" aria-label="Prime home">
           <BrandMark className="size-8" />
-          <span className="font-display text-[22px] font-bold tracking-wide uppercase">Prime</span>
+          <span className="text-[22px] font-bold tracking-tight">Prime</span>
         </Link>
         <div className="flex items-center gap-1">
           <SyncChip />
@@ -101,7 +101,7 @@ function TopBar() {
 function TabBar() {
   const { pathname } = useLocation();
   return (
-    <nav aria-label="Sections" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/92 backdrop-blur-md pb-safe md:hidden">
+    <nav aria-label="Sections" className="fixed inset-x-0 bottom-0 z-40 border-t border-line/60 bg-surface/80 backdrop-blur-xl backdrop-saturate-150 pb-safe md:hidden">
       <div className="mx-auto grid max-w-xl grid-cols-[repeat(5,1fr)_0.85fr] pl-safe pr-safe">
         {NAV.map(({ to, label, icon: Icon }) => {
           const active = isActive(pathname, to);

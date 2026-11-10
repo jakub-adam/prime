@@ -33,7 +33,9 @@ export async function setup(page: Page, opts: { theme?: 'light' | 'dark'; connec
   await page.clock.setFixedTime(new Date(`${TODAY}T10:30:00`));
   // Map tiles: a blank tile, so tests never load from tile.openstreetmap.org
   await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_TILE }));
-  await page.route('https://api.github.com/**', async route => {
+  // On the context, not the page: once the service worker controls the page (clientsClaim), API calls go through it,
+  // and only context routes see service-worker requests.
+  await page.context().route('https://api.github.com/**', async route => {
     const req = route.request();
     const r = gh.handle({ method: req.method(), url: req.url(), body: req.postData(), auth: req.headers()['authorization'] ?? null });
     await route.fulfill({ status: r.status, contentType: 'application/json', body: JSON.stringify(r.body) });

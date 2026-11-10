@@ -73,6 +73,17 @@ export class GitHubClient {
     }
   }
 
+  /** Entries of a folder ('' = repo root): name, sha and 'file' or 'dir'; [] when it doesn't exist. */
+  async listDir(path: string): Promise<{ name: string; sha: string; type: string }[]> {
+    try {
+      const j = await this.api<{ name: string; sha: string; type: string }[]>(`/contents/${path.split('/').map(encodeURIComponent).join('/')}`);
+      return Array.isArray(j) ? j.map(f => ({ name: f.name, sha: f.sha, type: f.type })) : [];
+    } catch (e) {
+      if (e instanceof GhError && e.status === 404) return [];
+      throw e;
+    }
+  }
+
   /** Writes several files in one commit (Git Data API). Retries when another writer moved the
       branch in between. Returns false when nothing changed. */
   async commitFiles(files: { path: string; content: string }[], message: string): Promise<boolean> {

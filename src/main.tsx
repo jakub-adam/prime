@@ -9,7 +9,7 @@ import './styles.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
-import { applyTheme, engine } from './app/store';
+import { applyTheme, engine, followLive } from './app/store';
 import { router } from './app/router';
 import { registerSW } from 'virtual:pwa-register';
 
@@ -23,8 +23,12 @@ window.addEventListener('hashchange', upgradeLegacyHash);
 
 applyTheme();
 window.addEventListener('online', () => engine.retryPending());
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') engine.onVisible(); });
-void engine.load();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  engine.onVisible();
+  followLive();
+});
+void engine.load().then(followLive);
 
 /* A home-screen app resumed from the background never navigates, so the browser never re-checks sw.js.
    Check for a new version whenever the app comes back to the foreground, and hourly; autoUpdate then reloads. */

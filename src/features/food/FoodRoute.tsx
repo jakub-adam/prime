@@ -248,7 +248,7 @@ function FoodTrends({ standalone }: { standalone?: boolean }) {
               <div className="-mx-1 overflow-x-auto">
                 <table className="w-full min-w-[320px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-line text-[12px] tracking-wide text-muted uppercase">
+                    <tr className="border-b border-line text-[12px] text-muted">
                       <th scope="col" className="px-1 py-2 font-semibold">Week of</th>
                       <th scope="col" className="px-1 py-2 text-right font-semibold">Days</th>
                       <th scope="col" className="px-1 py-2 text-right font-semibold">kcal</th>

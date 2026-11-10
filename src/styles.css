@@ -1,19 +1,20 @@
 @import 'tailwindcss';
 
-/* Prime look: track and field. Condensed scoreboard numerals, cool chalk ground,
-   track-rubber red for energy (kcal) and actions, lane blue for protein and trends. */
+/* Prime look: clean and quiet, in the spirit of Apple Health. Soft grey ground, borderless rounded cards,
+   sentence-case headings, condensed numerals for numbers, track red for energy and actions,
+   lane blue for protein and trends. */
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
-  --bg: #eef1f3;
+  --bg: #f2f3f5;
   --surface: #ffffff;
-  --surface-2: #f5f7f8;
-  --surface-3: #e9edf0;
+  --surface-2: #f5f6f8;
+  --surface-3: #eaecef;
   --ink: #141d26;
   --muted: #55616b;
-  --line: #d8dee3;
-  --line-strong: #c3ccd3;
+  --line: #e3e6ea;
+  --line-strong: #cbd1d7;
   --track: #c63f27;
   --track-ink: #b0361f;
   --track-soft: #f8e4df;
@@ -29,7 +30,7 @@
   --on-accent: #ffffff;
   --focus: #275e8c;
   --chart-grid: #e3e8ec;
-  --shadow-card: 0 1px 2px rgb(20 29 38 / 0.05), 0 2px 8px -2px rgb(20 29 38 / 0.06), 0 12px 32px -12px rgb(20 29 38 / 0.10);
+  --shadow-card: 0 1px 2px rgb(20 29 38 / 0.04), 0 10px 30px -14px rgb(20 29 38 / 0.14);
   --shadow-pop: 0 8px 28px -6px rgb(20 29 38 / 0.22), 0 2px 6px rgb(20 29 38 / 0.08);
   --cat-activity: #d9480f;
   --cat-body: #8b3fb0;
@@ -54,14 +55,14 @@
   color-scheme: light;
 }
 [data-theme='dark'] {
-  --bg: #0f151b;
-  --surface: #172029;
-  --surface-2: #1c2731;
-  --surface-3: #23303b;
+  --bg: #0a0c0f;
+  --surface: #16191e;
+  --surface-2: #1c2026;
+  --surface-3: #252a31;
   --ink: #e6ecf1;
   --muted: #9dabb7;
-  --line: #27333e;
-  --line-strong: #364552;
+  --line: #262b32;
+  --line-strong: #363d46;
   --track: #ee7b5e;
   --track-ink: #f28b70;
   --track-soft: #3a231e;
@@ -129,7 +130,7 @@
   --shadow-pop: var(--shadow-pop);
   --font-sans: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
-  --radius-card: 14px;
+  --radius-card: 20px;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -168,8 +169,8 @@
   .pr-safe { padding-right: env(safe-area-inset-right); }
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
-  /* Lane lines: subtle track texture used on progress bars. */
-  .lane-track { background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--line) calc(25% - 1px) 25%), var(--surface-3); }
+  /* Progress bar groove. */
+  .lane-track { background: var(--surface-3); }
 }
 
 /* Recharts: inherit theme */

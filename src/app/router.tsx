@@ -22,7 +22,7 @@ function RouteError() {
   const err = useRouteError() as Error | undefined;
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <h1 className="font-display text-4xl font-bold uppercase">Something broke</h1>
+      <h1 className="text-4xl font-bold tracking-tight">Something broke</h1>
       <p className="mt-2 text-muted">{err?.message || 'Unexpected error.'} Your data is safe.</p>
       <Button variant="primary" className="mt-6" onClick={() => { location.hash = '#/today'; location.reload(); }}>Reload</Button>
     </div>

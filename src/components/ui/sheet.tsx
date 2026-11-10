@@ -44,7 +44,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
             <div aria-hidden className="mx-auto mt-2.5 h-1.5 w-11 shrink-0 rounded-full bg-line-strong" />
             <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2">
               <div>
-                <Drawer.Title className="font-display text-[22px] leading-tight font-semibold uppercase">{title}</Drawer.Title>
+                <Drawer.Title className="text-[22px] leading-tight font-semibold tracking-tight">{title}</Drawer.Title>
                 {description ? <Drawer.Description className="text-sm text-muted">{description}</Drawer.Description> : <Drawer.Description className="sr-only">{title}</Drawer.Description>}
               </div>
               <Drawer.Close asChild><Button variant="ghost" size="icon" aria-label="Close"><X /></Button></Drawer.Close>
@@ -68,7 +68,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
         >
           <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-2">
             <div>
-              <Dialog.Title className="font-display text-[24px] leading-tight font-semibold uppercase">{title}</Dialog.Title>
+              <Dialog.Title className="text-[24px] leading-tight font-semibold tracking-tight">{title}</Dialog.Title>
               {description ? <Dialog.Description className="text-sm text-muted">{description}</Dialog.Description> : <Dialog.Description className="sr-only">{title}</Dialog.Description>}
             </div>
             <Dialog.Close asChild><Button variant="ghost" size="icon-sm" aria-label="Close"><X /></Button></Dialog.Close>
@@ -95,7 +95,7 @@ export function Confirm({ open, onOpenChange, title, description, confirmLabel =
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/45" />
         <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-[18px] border border-line bg-surface p-5 shadow-pop data-[state=open]:animate-[pop-in_160ms_var(--ease-out-soft)]">
-          <AlertDialog.Title className="font-display text-[22px] leading-tight font-semibold uppercase">{title}</AlertDialog.Title>
+          <AlertDialog.Title className="text-[22px] leading-tight font-semibold tracking-tight">{title}</AlertDialog.Title>
           <AlertDialog.Description className={cn('mt-1 text-sm text-muted', !description && 'sr-only')}>{description || title}</AlertDialog.Description>
           <div className="mt-5 flex justify-end gap-2">
             <AlertDialog.Cancel asChild><Button variant="secondary">Cancel</Button></AlertDialog.Cancel>

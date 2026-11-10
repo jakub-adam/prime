@@ -51,7 +51,15 @@ tests/          mock GitHub API, fixtures, Playwright specs
 
 - Files in the data repo: `food.json`, `training.json`, `body.json`, `activities.json`, `health.json`, `settings.json` (schema in the data repo's README), plus one `workouts/<id>.json` per imported watch workout (heart-rate, distance and GPS series; written by the importer in one commit through the Git Data API, read only on the workout's page). Shapes and id formats are unchanged from v1, so the nightly food task keeps working.
 - Every edit is an operation (`upsert`, `remove`, `set`, `health`) applied locally at once and queued per file. Saving PUTs the whole file. On a 409/422 conflict the app refetches, reapplies the queued operations and retries. The queue is kept in `localStorage` (`prime.cache`), so unsaved edits survive reloads and going offline.
-- `localStorage` keys: `prime.gh` (token), `prime.cache` (data, shas, pending ops), `prime.draft` (workout in progress), `prime.theme`, `prime.details` (the last 8 opened `workouts/<id>.json`, for offline viewing).
+- `localStorage` keys: `prime.gh` (token), `prime.cache` (data, shas, pending ops), `prime.draft` (workout in progress), `prime.theme`, `prime.details` (the last 8 opened `workouts/<id>.json`, for offline viewing), `prime.live` (the newest Shortcut export, parsed).
+
+### Live Apple Health data (iPhone Shortcut)
+
+An iPhone Shortcut runs when Prime opens and writes its export to the data repo, either by overwriting `inbox/latest.json` (preferred: one file, and the contents API lists at most 1,000 files per folder) or as a new `inbox/health_<date>_<HHMMSS>.json`. `latest.json` wins when it exists; the export must then carry `today.date`. Prime reads the newest file when it starts and whenever it comes back to the foreground, then checks again every 15 s for 2 minutes so the export from that same opening shows up a few seconds later. The badge on Today shows when the data was exported; tap it to check now.
+
+- Values are lists of the day's samples, one per line: steps, distance, flights, active and resting energy and exercise minutes are summed; heart rate gives average, minimum and maximum; resting and walking HR, HRV, respiratory rate and blood oxygen are averaged; `sleep` + `sleep_duration` give the stages. `vo2max` is used as is. `weight_kg` (the latest weigh-in, which can be days old) is not credited to today.
+- The parsed day is laid over that date in `health.json` for display only (Today, Health, metric pages) and is never written back. If a full Apple Health import is newer than the export, the import's values win and the live ones only fill gaps.
+- Parsing: `src/core/live.ts`; fetching: `SyncEngine.refreshLive()`; timing: `followLive()` in `src/app/store.ts`.
 - Settings adds optional keys: `stepsGoal`, `sleepGoalH`, and for Activity `maxHr` (zones, default 202), `easyPaceSec` (default 390 = 6:30 /km), `importRoutes` (default true) and `routePrivacyM` (metres hidden at each end of a route, default 200). Only changed keys are written; anything else in `settings.json` is left alone.
 
 ## Health tab and Apple Health import

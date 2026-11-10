@@ -44,7 +44,7 @@ export function LogPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h1 className="font-display text-[32px] font-bold uppercase lg:text-[40px]">Start workout</h1>
+          <h1 className="text-[32px] font-bold tracking-tight lg:text-[40px]">Start workout</h1>
           <Button asChild variant="ghost"><Link to="/train">Cancel</Link></Button>
         </div>
         <Card className="p-4 sm:p-5">
@@ -82,7 +82,7 @@ function RestBar({ rest, setRest }: { rest: Rest; setRest: (r: Rest) => void }) 
       <div className="relative flex items-center gap-2 px-3 py-2">
         <Timer aria-hidden className="size-5 text-lane-ink" />
         <div className="flex-1">
-          <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">Rest</div>
+          <div className="text-[12px] font-semibold text-muted">Rest</div>
           <div className="num text-[26px] leading-none font-semibold">{clockOf(left)}</div>
         </div>
         <Button variant="secondary" size="sm" onClick={() => bump(-15)} aria-label="15 seconds less">−15</Button>
@@ -141,7 +141,7 @@ function Logger({ draft: d }: { draft: Draft }) {
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="icon" aria-label="Minimize workout"><Link to="/train"><ChevronDown /></Link></Button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[12px] font-semibold tracking-wide text-muted uppercase">{d.id ? 'Edit workout' : 'Log workout'}</h1>
+            <h1 className="text-[12px] font-semibold text-muted">{d.id ? 'Edit workout' : 'Log workout'}</h1>
             {elapsed != null ? <div className="num text-xl leading-none font-semibold" role="timer" aria-label={`Workout time ${clockOf(elapsed)}`}>{clockOf(elapsed)}</div> : <div className="text-sm font-semibold">{fmtShort(d.date)}</div>}
           </div>
           <Button variant="primary" onClick={() => setFinishing(true)}>Finish</Button>
@@ -150,7 +150,7 @@ function Logger({ draft: d }: { draft: Draft }) {
 
       <label htmlFor="w-name" className="sr-only">Workout name</label>
       <input id="w-name" value={d.name} placeholder="Workout name" list="dl-sessions" onChange={e => update(x => { x.name = e.target.value; })}
-        className="w-full rounded-lg bg-transparent font-display text-[34px] leading-tight font-bold uppercase outline-none placeholder:text-muted/60 focus-visible:ring-2 focus-visible:ring-lane/40" />
+        className="w-full rounded-lg bg-transparent text-[34px] leading-tight font-bold tracking-tight outline-none placeholder:text-muted/60 focus-visible:ring-2 focus-visible:ring-lane/40" />
 
       <dl className="mt-2 grid grid-cols-3 gap-2">
         {[
@@ -159,7 +159,7 @@ function Logger({ draft: d }: { draft: Draft }) {
           [<Layers key="l" />, 'Sets', String(stats.sets)],
         ].map(([icon, k, v]) => (
           <div key={k as string} className="rounded-xl bg-surface-2 px-3 py-2">
-            <dt className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-muted uppercase [&_svg]:size-3.5">{icon}{k}</dt>
+            <dt className="flex items-center gap-1 text-[11px] font-semibold text-muted [&_svg]:size-3.5">{icon}{k}</dt>
             <dd className="num text-xl leading-tight font-semibold">{v}</dd>
           </div>
         ))}
@@ -215,9 +215,9 @@ function FinishSheet({ open, onOpenChange, d, elapsed, stats, onSave }: {
         <Button variant="primary" className="max-md:flex-1" onClick={onSave}><Check /> Save workout</Button>
       </>}>
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-surface-2 px-3 py-2"><div className="text-[11px] font-semibold text-muted uppercase">Duration</div><div className="num text-xl font-semibold">{elapsed != null ? clockOf(elapsed) : d.durationMin ? `${d.durationMin} min` : '–'}</div></div>
-        <div className="rounded-xl bg-surface-2 px-3 py-2"><div className="text-[11px] font-semibold text-muted uppercase">Exercises</div><div className="num text-xl font-semibold">{d.exercises.length}</div></div>
-        <div className="rounded-xl bg-surface-2 px-3 py-2"><div className="text-[11px] font-semibold text-muted uppercase">Sets</div><div className="num text-xl font-semibold">{filled}</div></div>
+        <div className="rounded-xl bg-surface-2 px-3 py-2"><div className="text-[11px] font-semibold text-muted">Duration</div><div className="num text-xl font-semibold">{elapsed != null ? clockOf(elapsed) : d.durationMin ? `${d.durationMin} min` : '–'}</div></div>
+        <div className="rounded-xl bg-surface-2 px-3 py-2"><div className="text-[11px] font-semibold text-muted">Exercises</div><div className="num text-xl font-semibold">{d.exercises.length}</div></div>
+        <div className="rounded-xl bg-surface-2 px-3 py-2"><div className="text-[11px] font-semibold text-muted">Sets</div><div className="num text-xl font-semibold">{filled}</div></div>
       </div>
       <p className="mt-3 text-sm text-muted">
         {filled ? `${filled} sets with numbers will be saved${notDone ? ` (${notDone} not ticked off yet)` : ''}. Empty sets are skipped.` : 'Fill in at least one set to save.'}
@@ -265,7 +265,7 @@ function ExerciseCard({ ex, ei, date, update, onDone }: {
           <DropdownMenu.Trigger asChild><Button variant="ghost" size="icon" aria-label={`Options for ${ex.name}`}><MoreHorizontal /></Button></DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content align="end" sideOffset={4} className="z-50 min-w-56 rounded-xl border border-line bg-surface p-1 shadow-pop">
-              <DropdownMenu.Label className="px-2 py-1.5 text-[12px] font-semibold text-muted uppercase">Type</DropdownMenu.Label>
+              <DropdownMenu.Label className="px-2 py-1.5 text-[12px] font-semibold text-muted">Type</DropdownMenu.Label>
               <DropdownMenu.RadioGroup value={ex.kind} onValueChange={v => setEx(e => { e.kind = v as ExerciseKind; })}>
                 {(Object.entries(KIND_LABEL) as [ExerciseKind, string][]).map(([k, l]) => (
                   <DropdownMenu.RadioItem key={k} value={k} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm outline-none data-[highlighted]:bg-surface-2">
@@ -274,7 +274,7 @@ function ExerciseCard({ ex, ei, date, update, onDone }: {
                 ))}
               </DropdownMenu.RadioGroup>
               <DropdownMenu.Separator className="my-1 h-px bg-line" />
-              <DropdownMenu.Label className="px-2 py-1.5 text-[12px] font-semibold text-muted uppercase">Rest timer</DropdownMenu.Label>
+              <DropdownMenu.Label className="px-2 py-1.5 text-[12px] font-semibold text-muted">Rest timer</DropdownMenu.Label>
               <DropdownMenu.RadioGroup value={String(restSec)} onValueChange={v => setEx(e => { e.rest = +v; })}>
                 <div className="grid grid-cols-4 gap-1 px-1 pb-1">
                   {REST_OPTIONS.map(s => (
@@ -298,7 +298,7 @@ function ExerciseCard({ ex, ei, date, update, onDone }: {
       </div>
 
       <div className="mt-2" role="table" aria-label={`${ex.name} sets`}>
-        <div role="row" className="grid grid-cols-[34px_minmax(0,1fr)_64px_64px_44px] items-center gap-1.5 px-3 pb-1 text-[11px] font-semibold tracking-wide text-muted uppercase sm:grid-cols-[40px_minmax(0,1fr)_88px_88px_48px] sm:px-4">
+        <div role="row" className="grid grid-cols-[34px_minmax(0,1fr)_64px_64px_44px] items-center gap-1.5 px-3 pb-1 text-[11px] font-semibold text-muted sm:grid-cols-[40px_minmax(0,1fr)_88px_88px_48px] sm:px-4">
           <span role="columnheader" className="text-center">Set</span>
           <span role="columnheader">Previous</span>
           <span role="columnheader" className="text-center">{aLbl}</span>

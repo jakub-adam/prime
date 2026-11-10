@@ -101,7 +101,7 @@ function TrainHome() {
           <Routines className="lg:col-span-12" />
           <section aria-labelledby="history-h" className="lg:col-span-12">
             <div className="mb-3 flex items-end justify-between">
-              <h2 id="history-h" className="font-display text-[22px] font-semibold uppercase">History</h2>
+              <h2 id="history-h" className="text-[22px] font-semibold tracking-tight">History</h2>
               <span className="text-[13px] text-muted">{sessions.length} workouts</span>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -120,7 +120,7 @@ function TrainHome() {
             </CardBody>
           </Card>
           <section className="lg:col-span-12" aria-labelledby="lib-h">
-            <h2 id="lib-h" className="mb-3 font-display text-[22px] font-semibold uppercase">Exercise library</h2>
+            <h2 id="lib-h" className="mb-3 text-[22px] font-semibold tracking-tight">Exercise library</h2>
             <Library compact />
           </section>
         </div>
@@ -197,7 +197,7 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
               [<Trophy key="t" />, 'Records', String(prs)],
             ].map(([icon, k, v]) => (
               <div key={k as string} className="rounded-xl bg-surface-2 px-3.5 py-2.5">
-                <dt className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-muted uppercase [&_svg]:size-3.5">{icon}{k}</dt>
+                <dt className="flex items-center gap-1 text-[11px] font-semibold text-muted [&_svg]:size-3.5">{icon}{k}</dt>
                 <dd className={cn('num text-[24px] leading-tight font-semibold', k === 'Records' && prs ? 'text-track-ink' : '')}>{v}</dd>
               </div>
             ))}
@@ -224,7 +224,7 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
                   </div>
                   <table className="mt-2 w-full text-sm">
                     <thead>
-                      <tr className="text-[11px] tracking-wide text-muted uppercase">
+                      <tr className="text-[11px] text-muted">
                         <th scope="col" className="w-12 py-1 text-center font-semibold">Set</th>
                         <th scope="col" className="py-1 text-left font-semibold">{ex.kind === 'weight' ? 'Weight × reps' : ex.kind === 'hold' ? 'Hold' : 'Reps'}</th>
                         <th scope="col" className="py-1 pr-4 text-right font-semibold">{ex.kind === 'weight' ? 'e1RM' : ''}</th>

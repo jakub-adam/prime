@@ -27,7 +27,7 @@ export function ChangeTable({ rows }: { rows: ReturnType<typeof useMeasureChange
     <div className="-mx-1 overflow-x-auto">
       <table className="w-full min-w-[300px] text-left text-sm">
         <thead>
-          <tr className="border-b border-line text-[12px] tracking-wide text-muted uppercase">
+          <tr className="border-b border-line text-[12px] text-muted">
             <th scope="col" className="px-1 py-2 font-semibold"><span className="sr-only">Measurement</span></th>
             <th scope="col" className="px-1 py-2 text-right font-semibold">First</th>
             <th scope="col" className="px-1 py-2 text-right font-semibold">Latest</th>

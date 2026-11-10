@@ -79,12 +79,29 @@ export class MockGitHub {
       this.head = body.sha;
       return res(200, { object: { sha: body.sha } });
     }
+    if ((rest === '/contents' || rest === '/contents/') && req.method === 'GET') {
+      // repo root: files, plus folders with a sha that changes whenever a file inside changes
+      const entries = new Map<string, { name: string; path: string; sha: string; type: string }>();
+      for (const [p, x] of this.files) {
+        const [top, ...more] = p.split('/');
+        if (!more.length) entries.set(top!, { name: top!, path: top!, sha: String(x.sha), type: 'file' });
+        else {
+          const prev = entries.get(top!);
+          entries.set(top!, { name: top!, path: top!, sha: `${prev?.sha ?? 'd'}-${p}@${x.sha}`, type: 'dir' });
+        }
+      }
+      return res(200, [...entries.values()]);
+    }
     const m = /^\/contents\/([\w.%/-]+)$/.exec(rest);
     if (!m) return res(404, { message: 'Not Found' });
     const name = decodeURIComponent(m[1]!);
     if (req.method === 'GET') {
       const f = this.files.get(name);
-      if (!f) return res(404, { message: 'Not Found' });
+      if (!f) {
+        const inDir = [...this.files.entries()].filter(([p]) => p.startsWith(name + '/') && !p.slice(name.length + 1).includes('/'));
+        if (inDir.length) return res(200, inDir.map(([p, x]) => ({ name: p.slice(name.length + 1), path: p, sha: String(x.sha), type: 'file' })));
+        return res(404, { message: 'Not Found' });
+      }
       return res(200, { name, content: enc(f.content), sha: String(f.sha), encoding: 'base64' });
     }
     if (req.method === 'PUT') {

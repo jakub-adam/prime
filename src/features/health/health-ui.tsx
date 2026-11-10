@@ -74,15 +74,15 @@ export function HealthCard({ k, className }: { k: MetricKey; className?: string 
   return (
     <Link
       to={metricHref(k)}
-      className={cn('group flex min-h-[132px] flex-col rounded-card border border-line/80 bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop', className)}
+      className={cn('@container group flex min-h-[132px] flex-col rounded-card bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop', className)}
     >
       <div className="flex items-center gap-2">
         <CategoryIcon cat={def.category} size="sm" />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold" title={def.label}>{shortLabel(k)}</span>
-        <span className="shrink-0 text-[12px] text-muted">{s.last ? fmtRelative(s.last, today) : ''}</span>
+        <span className="hidden shrink-0 text-[12px] text-muted @[13.5rem]:inline">{s.last ? fmtRelative(s.last, today) : ''}</span>
         <ChevronRight aria-hidden className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
       </div>
-      <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+      <div className="mt-auto flex flex-col gap-2 pt-3 @[13.5rem]:flex-row @[13.5rem]:items-end @[13.5rem]:justify-between @[13.5rem]:gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-1">
             <span className="num text-[30px] leading-none font-semibold">{f.value}</span>
@@ -90,7 +90,7 @@ export function HealthCard({ k, className }: { k: MetricKey; className?: string 
           </div>
           <div className="mt-1 truncate text-[12px] text-muted">{s.weekAvg != null ? `7-day avg ${avgF.value}${avgF.unit && k !== 'stress' ? ` ${avgF.unit}` : ''}` : s.last ? 'Latest' : 'No data'}</div>
         </div>
-        <Sparkline values={s.spark} color={k === 'stress' ? 'track' : def.category} kind={def.chart === 'bar' ? 'bar' : 'line'} className="h-9 w-24 shrink-0" />
+        <Sparkline values={s.spark} color={k === 'stress' ? 'track' : def.category} kind={def.chart === 'bar' ? 'bar' : 'line'} className="h-8 w-full shrink-0 @[13.5rem]:h-9 @[13.5rem]:w-24" />
       </div>
     </Link>
   );
@@ -98,7 +98,7 @@ export function HealthCard({ k, className }: { k: MetricKey; className?: string 
 
 /* ---------- activity rings ---------- */
 export const RING_GOALS = { move: 500, exercise: 30, stand: 12 };
-function Ring({ r, pct, color, w }: { r: number; pct: number; color: string; w: number }) {
+export function Ring({ r, pct, color, w }: { r: number; pct: number; color: string; w: number }) {
   const c = 2 * Math.PI * r;
   const shown = Math.min(pct, 1);
   return (
@@ -150,19 +150,19 @@ export function WeightCard({ className }: { className?: string }) {
   const now = rollingAvg(ws, today), prev = rollingAvg(ws, addDays(today, -7));
   const last = ws[ws.length - 1];
   return (
-    <Link to="/health/weight" className={cn('group flex min-h-[132px] flex-col rounded-card border border-line/80 bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop', className)}>
+    <Link to="/health/weight" className={cn('@container group flex min-h-[132px] flex-col rounded-card bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop', className)}>
       <div className="flex items-center gap-2">
         <CategoryIcon cat="body" size="sm" />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">Weight</span>
-        <span className="shrink-0 text-[12px] text-muted">{last ? fmtRelative(last.date, today) : ''}</span>
+        <span className="hidden shrink-0 text-[12px] text-muted @[13.5rem]:inline">{last ? fmtRelative(last.date, today) : ''}</span>
         <ChevronRight aria-hidden className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
       </div>
-      <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+      <div className="mt-auto flex flex-col gap-2 pt-3 @[13.5rem]:flex-row @[13.5rem]:items-end @[13.5rem]:justify-between @[13.5rem]:gap-3">
         <div className="min-w-0">
           <div className="flex items-baseline gap-1"><span className="num text-[30px] leading-none font-semibold">{now ? fmt(now, 1) : '–'}</span><span className="text-sm font-medium text-muted">kg</span></div>
           <div className={cn('mt-1 truncate text-[12px]', now && prev ? (now - prev <= 0 ? 'text-good' : 'text-bad') : 'text-muted')}>{now && prev ? `${signed(now - prev)} kg vs last week` : '7-day average'}</div>
         </div>
-        <Sparkline values={ws.slice(-14).map(p => p.kg)} color="body" className="h-9 w-24 shrink-0" />
+        <Sparkline values={ws.slice(-14).map(p => p.kg)} color="body" className="h-8 w-full shrink-0 @[13.5rem]:h-9 @[13.5rem]:w-24" />
       </div>
     </Link>
   );

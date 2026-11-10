@@ -20,7 +20,7 @@ const ICON: Record<Sport, typeof Footprints> = { run: Footprints, walk: Footprin
 function CardStat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] font-semibold tracking-wide text-muted uppercase">{label}</div>
+      <div className="text-[11px] font-semibold text-muted">{label}</div>
       <div className="num truncate text-[22px] leading-tight font-semibold">{value}{unit ? <span className="ml-0.5 font-sans text-[12px] font-medium text-muted">{unit}</span> : null}</div>
     </div>
   );
@@ -37,7 +37,7 @@ export function ActivityCard({ item, privacyM, today }: { item: FeedItem; privac
   const preview = item.workout?.routePreview;
   return (
     <Link to={item.to}
-      className="group flex gap-4 rounded-card border border-line/80 bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop sm:p-5">
+      className="group flex gap-4 rounded-card bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop sm:p-5">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-track-soft text-track-ink"><Icon aria-hidden className="size-5" /></span>

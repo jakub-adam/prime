@@ -31,7 +31,7 @@ export function useStartWorkout() {
 function Stat({ icon, label, value, sub }: { icon: ReactNode; label: string; value: string; sub?: string }) {
   return (
     <div className="min-w-0">
-      <div className="flex items-center gap-1.5 text-[12px] font-semibold tracking-wide text-muted uppercase [&_svg]:size-3.5">{icon}{label}</div>
+      <div className="flex items-center gap-1.5 text-[12px] font-semibold text-muted [&_svg]:size-3.5">{icon}{label}</div>
       <div className="num text-[28px] leading-tight font-semibold">{value}</div>
       {sub ? <div className="truncate text-[12px] text-muted">{sub}</div> : null}
     </div>
@@ -90,7 +90,7 @@ export function Routines({ className }: { className?: string }) {
   return (
     <section aria-labelledby="routines-h" className={className}>
       <div className="mb-3 flex items-end justify-between gap-2">
-        <h2 id="routines-h" className="font-display text-[22px] font-semibold uppercase">Routines</h2>
+        <h2 id="routines-h" className="text-[22px] font-semibold tracking-tight">Routines</h2>
         {draft ? <Link to="/train/log" className="text-sm font-semibold text-lane-ink hover:underline">{draft.name || 'Workout'} in progress</Link> : null}
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -129,7 +129,7 @@ export function SessionCard({ s, flags, active, compact }: { s: Session; flags?:
   const show = compact ? 0 : 3;
   return (
     <Link to={`/train/session/${encodeURIComponent(s.id)}`} aria-current={active ? 'page' : undefined}
-      className={cn('group block rounded-card border border-line/80 bg-surface p-4 shadow-card transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop aria-[current=page]:border-lane aria-[current=page]:ring-2 aria-[current=page]:ring-lane/25')}>
+      className={cn('group block rounded-card bg-surface p-4 shadow-card transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop aria-[current=page]:border-lane aria-[current=page]:ring-2 aria-[current=page]:ring-lane/25')}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate text-[17px] font-semibold">{s.name}</h3>

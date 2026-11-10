@@ -38,7 +38,7 @@ export function NutrientSummary({ t, className }: { t: DayTotals; className?: st
       <dl className="grid grid-cols-3 gap-x-3 gap-y-2">
         {NUTRIENTS.map(n => (
           <div key={n.key} className="min-w-0">
-            <dt className="truncate text-[11px] font-semibold tracking-wide text-muted uppercase">{n.short}</dt>
+            <dt className="truncate text-[11px] font-semibold text-muted">{n.short}</dt>
             <dd className={cn('num text-lg leading-tight font-semibold', t[n.key] == null && 'text-muted')}>{g1(t[n.key])}</dd>
           </div>
         ))}

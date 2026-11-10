@@ -27,8 +27,8 @@ export function PageHeader({ title, kicker, back, actions, className }: {
           </Button>
         ) : null}
         <div className="min-w-0">
-          {kicker ? <div className="text-[13px] font-semibold tracking-wide text-muted uppercase">{kicker}</div> : null}
-          <h1 className="truncate font-display text-[32px] leading-[1.05] font-bold tracking-[0.005em] uppercase lg:text-[40px]">{title}</h1>
+          {kicker ? <div className="text-[13px] font-semibold text-muted">{kicker}</div> : null}
+          <h1 className="truncate text-[34px] leading-[1.1] font-bold tracking-tight lg:text-[40px]">{title}</h1>
         </div>
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
@@ -89,12 +89,12 @@ export function StatTile({ to, label, value, unit, sub, chart, tone, className }
     <Link
       to={to}
       className={cn(
-        'group relative flex min-h-[124px] flex-col rounded-card border border-line/80 bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop',
+        'group relative flex min-h-[124px] flex-col rounded-card bg-surface p-4 shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-pop',
         className,
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[13px] font-semibold tracking-wide text-muted uppercase">{label}</span>
+        <span className="text-[13px] font-semibold text-muted">{label}</span>
         <ChevronRight aria-hidden className="size-4 text-muted transition-transform group-hover:translate-x-0.5" />
       </div>
       <div className="mt-1 flex items-baseline gap-1">
@@ -177,7 +177,7 @@ export function RowLink({ to, children, className, active }: { to: string; child
 export function KV({ k, v, sub }: { k: string; v: ReactNode; sub?: ReactNode }) {
   return (
     <div className="min-w-0 rounded-xl bg-surface-2 px-3.5 py-3">
-      <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">{k}</div>
+      <div className="text-[12px] font-semibold text-muted">{k}</div>
       <div className="num mt-0.5 truncate text-[26px] leading-tight font-semibold">{v}</div>
       {sub ? <div className="line-clamp-2 text-[13px] leading-snug text-muted">{sub}</div> : null}
     </div>

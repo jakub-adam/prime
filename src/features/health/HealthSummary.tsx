@@ -70,7 +70,7 @@ export function MeasurementsCard({ className }: { className?: string }) {
   const waist = rows.find(r => r.k === 'waist');
   const last = ms[ms.length - 1];
   return (
-    <Link to="/health/measurements" className={cn('group flex min-h-[132px] flex-col rounded-card border border-line/80 bg-surface p-4 shadow-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-pop', className)}>
+    <Link to="/health/measurements" className={cn('group flex min-h-[132px] flex-col rounded-card bg-surface p-4 shadow-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-pop', className)}>
       <div className="flex items-center gap-2">
         <span aria-hidden className="grid size-7 place-items-center rounded-[10px] text-[var(--cat-body)]" style={{ background: 'color-mix(in srgb, var(--cat-body) 15%, transparent)' }}><Ruler className="size-4" /></span>
         <span className="flex-1 text-sm font-semibold">Measurements</span>
@@ -102,14 +102,14 @@ export function HealthSummary() {
       ) : null}
       <section aria-labelledby="days-h" className="mb-5">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 id="days-h" className="font-display text-[22px] font-semibold uppercase">By day</h2>
+          <h2 id="days-h" className="text-[22px] font-semibold tracking-tight">By day</h2>
           <DayPicker base="/health/day" />
         </div>
         <RecentDayLinks base="/health/day" />
       </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <section aria-labelledby="pinned-h" className="lg:col-span-8">
-          <h2 id="pinned-h" className="mb-3 font-display text-[22px] font-semibold uppercase">Pinned</h2>
+          <h2 id="pinned-h" className="mb-3 text-[22px] font-semibold tracking-tight">Pinned</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <WeightCard />
             {pinned.map((k, i) => <HealthCard key={k} k={k} className={i >= 5 ? 'max-sm:hidden' : undefined} />)}
@@ -120,7 +120,7 @@ export function HealthSummary() {
           <WorkoutsCard />
         </div>
         <section aria-labelledby="cats-h" className="lg:col-span-12">
-          <h2 id="cats-h" className="mb-3 font-display text-[22px] font-semibold uppercase">Categories</h2>
+          <h2 id="cats-h" className="mb-3 text-[22px] font-semibold tracking-tight">Categories</h2>
           <Card>
             <CardBody className="pt-3">
               <ul className="-mx-2 grid grid-cols-1 md:grid-cols-2 md:gap-x-4">

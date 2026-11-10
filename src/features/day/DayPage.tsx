@@ -49,7 +49,7 @@ export function RecentDayLinks({ base, active }: { base: '/day' | '/health/day';
       {days.map(d => (
         <Link key={d} to={`${base}/${d}`} aria-current={d === active ? 'page' : undefined}
           className="flex min-h-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface px-3 py-1.5 text-center transition-colors hover:border-line-strong aria-[current=page]:border-track aria-[current=page]:bg-track-soft">
-          <span className="text-[11px] font-semibold text-muted uppercase">{fmtRelative(d, today) === 'Today' ? 'Today' : fmtDay(d).split(' ')[0]}</span>
+          <span className="text-[11px] font-semibold text-muted">{fmtRelative(d, today) === 'Today' ? 'Today' : fmtDay(d).split(' ')[0]}</span>
           <span className="num text-base leading-none font-semibold">{d.slice(8).replace(/^0/, '')}</span>
         </Link>
       ))}
@@ -213,7 +213,7 @@ function HealthSections({ date }: { date: string }) {
       </div>
       {cats.map(({ c, ks }) => (
         <section key={c.key} aria-labelledby={`day-${c.key}`}>
-          <h2 id={`day-${c.key}`} className="mb-2 flex items-center gap-2 font-display text-[20px] font-semibold uppercase"><CategoryIcon cat={c.key} size="sm" />{c.label}</h2>
+          <h2 id={`day-${c.key}`} className="mb-2 flex items-center gap-2 text-[20px] font-semibold tracking-tight"><CategoryIcon cat={c.key} size="sm" />{c.label}</h2>
           <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
             {ks.filter(k => k !== 'stress').map(k => {
               const f = formatMetric(k, d![k], d);
@@ -222,7 +222,7 @@ function HealthSections({ date }: { date: string }) {
               const good = diff != null && METRICS[k].higherIsBetter != null && Math.abs(diff) > 0 ? (diff > 0) === METRICS[k].higherIsBetter : null;
               return (
                 <li key={k}>
-                  <Link to={metricHref(k)} className="block h-full rounded-xl border border-line/80 bg-surface p-3 shadow-card transition-colors hover:border-line-strong">
+                  <Link to={metricHref(k)} className="block h-full rounded-xl bg-surface p-3 shadow-card transition-colors hover:border-line-strong">
                     <div className="truncate text-[12px] font-semibold text-muted">{shortLabel(k)}</div>
                     <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1"><span className="num text-[24px] leading-tight font-semibold">{f.value}</span>{f.unit ? <span className="text-[12px] text-muted">{f.unit}</span> : null}</div>
                     {diff != null ? (
@@ -273,7 +273,7 @@ export function DayPage() {
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-5">
           <div className="space-y-4 lg:col-span-5"><FuelCard date={date} /><TrainingCard date={date} /></div>
           <section aria-labelledby="day-health-h" className="lg:col-span-7">
-            <h2 id="day-health-h" className="mb-3 flex items-center gap-2 font-display text-[22px] font-semibold uppercase"><Moon aria-hidden className="size-5 text-muted" />Health</h2>
+            <h2 id="day-health-h" className="mb-3 flex items-center gap-2 text-[22px] font-semibold tracking-tight"><Moon aria-hidden className="size-5 text-muted" />Health</h2>
             <HealthSections date={date} />
           </section>
         </div>

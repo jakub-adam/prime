@@ -9,6 +9,8 @@ export const KEYS = {
   theme: 'prime.theme',
   /** last opened workouts/<id>.json files, for offline viewing */
   details: 'prime.details',
+  /** newest Shortcut export from inbox/, parsed (display only) */
+  live: 'prime.live',
 } as const;
 
 export type GhConfig = { owner?: string; repo?: string; token?: string };

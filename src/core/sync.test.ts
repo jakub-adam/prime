@@ -185,3 +185,42 @@ describe('SyncEngine', () => {
     expect(e.getSnapshot().mode).toBe('github');
   });
 });
+
+describe('live Shortcut data', () => {
+  it('reads the newest inbox export, skips unchanged files and keeps it for offline', async () => {
+    gh.write('inbox/health_test.json', JSON.stringify({ message: 'hi' }));
+    gh.write('inbox/health_2026-11-10_090000.json', JSON.stringify({ exported_at: '2026-11-10T09:00:00+01:00', today: { date: '2026-11-10', steps: '100\n200' } }));
+    kv.setItem(KEYS.gh, JSON.stringify(cfg()));
+    const e = engine();
+    await e.load();
+    await e.refreshLive();
+    expect(e.getSnapshot().live).toMatchObject({ date: '2026-11-10', file: 'health_2026-11-10_090000.json', day: { steps: 300 } });
+
+    const before = gh.log.length;
+    await e.refreshLive();
+    // unchanged inbox/: only the root listing
+    expect(gh.log.slice(before).map(l => [l.path, l.status])).toEqual([[`/repos/${gh.owner}/${gh.repo}/contents/`, 200]]);
+
+    gh.write('inbox/health_2026-11-10_093000.json', JSON.stringify({ exported_at: '2026-11-10T09:30:00+01:00', today: { date: '2026-11-10', steps: '100\n200\n700' } }));
+    await e.refreshLive();
+    expect(e.getSnapshot().live?.day.steps).toBe(1000);
+
+    const again = engine();
+    await again.load();
+    expect(again.getSnapshot().live?.day.steps).toBe(1000);
+    gh.offline = true;
+    await again.refreshLive();
+    expect(again.getSnapshot().live?.day.steps).toBe(1000);
+  });
+
+  it('does nothing in demo mode or without an inbox', async () => {
+    const e = engine();
+    await e.load();
+    await e.refreshLive();
+    expect(e.getSnapshot().live).toBeNull();
+    kv.setItem(KEYS.gh, JSON.stringify(cfg()));
+    await e.load();
+    await e.refreshLive();
+    expect(e.getSnapshot().live).toBeNull();
+  });
+});

@@ -94,9 +94,9 @@ export function ExercisePicker({ open, onOpenChange, onPick, exclude = [] }: {
       ) : null}
       {!query && muscle === 'all' && recentSet.size ? (
         <>
-          <h3 className="px-2 pt-1 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">Recent</h3>
+          <h3 className="px-2 pt-1 pb-1 text-[12px] font-semibold text-muted">Recent</h3>
           <ul>{[...recentSet].map(row)}</ul>
-          <h3 className="px-2 pt-3 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">All exercises</h3>
+          <h3 className="px-2 pt-3 pb-1 text-[12px] font-semibold text-muted">All exercises</h3>
           <ul>{visible.filter(n => !recentSet.has(n)).map(row)}</ul>
         </>
       ) : (
