@@ -4,12 +4,13 @@ import { Link, useMatch, useNavigate, useParams } from 'react-router';
 import { useData, useGoals, useHealthDays, useToday } from '@/app/store';
 import { NotFound } from '@/app/NotFound';
 import {
-  activityLabel, allActivities, avg, CATEGORIES, dayTotals, fmtDur, mealsOn, METRICS, sessionSets, sessionVolume, STRESS_LABEL, stressFor,
+  activityLabel, cardioActivities, avg, CATEGORIES, dayTotals, fmtDur, mealsOn, METRICS, sessionSets, sessionVolume, STRESS_LABEL, stressFor,
   stressLevel, weightSeries, type MetricKey,
 } from '@/core/calc';
 import { addDays, fmtDay, fmtLong, fmtRelative } from '@/core/dates';
 import type { HealthDay } from '@/core/types';
 import { EmptyState, Meter, PageHeader, RowLink } from '@/components/common';
+import { ExerciseIcon } from '@/components/ExerciseIcon';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/form';
@@ -104,7 +105,7 @@ function TrainingCard({ date }: { date: string }) {
   const data = useData();
   const today = useToday();
   const sessions = data.training.sessions.filter(s => s.date === date);
-  const acts = useMemo(() => allActivities(data).filter(a => a.date === date), [data, date]);
+  const acts = useMemo(() => cardioActivities(data).filter(a => a.date === date), [data, date]);
   return (
     <Card>
       <CardHeader title="Training" meta={sessions.length + acts.length ? `${sessions.length + acts.length} logged` : date < today ? 'Rest day' : 'Nothing yet'} />
@@ -114,7 +115,7 @@ function TrainingCard({ date }: { date: string }) {
             {sessions.map(s => (
               <li key={s.id}>
                 <RowLink to={`/train/session/${encodeURIComponent(s.id)}`}>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-track-soft text-track-ink"><Dumbbell aria-hidden className="size-5" /></span>
+                  {s.exercises[0] ? <ExerciseIcon name={s.exercises[0].name} kind={s.exercises[0].kind} size={40} /> : <span className="grid size-10 shrink-0 place-items-center rounded-[11px] bg-surface-2 text-muted shadow-card"><Dumbbell aria-hidden className="size-5" /></span>}
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{s.name}</div>
                     <div className="truncate text-[13px] text-muted">{s.exercises.length} exercises · {sessionSets(s)} sets{sessionVolume(s) ? ` · ${fmt(sessionVolume(s))} kg` : ''}</div>
@@ -125,7 +126,7 @@ function TrainingCard({ date }: { date: string }) {
             {acts.map(a => (
               <li key={a.id}>
                 <RowLink to={`/activity/${encodeURIComponent(a.id)}`}>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-lane-soft text-lane-ink"><Footprints aria-hidden className="size-5" /></span>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-[11px] bg-surface-2 text-muted shadow-card"><Footprints aria-hidden className="size-5" /></span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{activityLabel(a)}</div>
                     <div className="truncate text-[13px] text-muted">{fmtDur(a.durationSec)}{a.avgHr ? ` · ${a.avgHr} bpm` : ''}{a.source === 'Apple Watch' || a.merged ? ' · Apple Watch' : ''}</div>

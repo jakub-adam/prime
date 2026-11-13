@@ -1,17 +1,18 @@
-/* Activity tab data: one feed of watch workouts, logged activities and strength sessions,
-   plus the progress numbers (HR at easy pace, best efforts, weekly distance). */
-import { allActivities, fmtDur, isRun, pace, sessionSets, type ActivityView } from '@/core/calc';
+/* Activity tab data: the cardio feed (watch workouts and logged activities with distance, pace and
+   heart rate) plus the progress numbers (HR at easy pace, best efforts, weekly distance).
+   Strength sessions live in Train and never appear here. */
+import { allActivities, cardioActivities, fmtDur, isRun, isStrengthType, pace, type ActivityView } from '@/core/calc';
 import { addDays, mondayOf, parseYmd } from '@/core/dates';
-import type { BestEfforts, DataFiles, HealthWorkout, Session } from '@/core/types';
+import type { BestEfforts, DataFiles, HealthWorkout } from '@/core/types';
 import { hkTime, hrAtPace, trimRoute } from '@/core/workout';
 
-export type Sport = 'run' | 'walk' | 'strength' | 'other';
-export const SPORT_FILTERS: readonly (readonly ['all' | Sport, string])[] = [['all', 'All'], ['run', 'Running'], ['walk', 'Walking'], ['strength', 'Strength']];
+export type Sport = 'run' | 'walk' | 'ride' | 'strength' | 'other';
+export const SPORT_FILTERS: readonly (readonly ['all' | Sport, string])[] = [['all', 'All'], ['run', 'Runs'], ['walk', 'Walks'], ['ride', 'Rides'], ['other', 'Other']];
 
 export const sportOf = (type: string): Sport =>
-  isRun(type) ? 'run' : /walk|hik/i.test(type) ? 'walk' : /strength|lift|core|weights?|upper|lower/i.test(type) ? 'strength' : 'other';
+  isRun(type) ? 'run' : /walk|hik/i.test(type) ? 'walk' : /cycl|bik|ride/i.test(type) ? 'ride' : isStrengthType(type) ? 'strength' : 'other';
 
-const SPORT_NAME: Record<Sport, string> = { run: 'Run', walk: 'Walk', strength: 'Strength', other: 'Workout' };
+const SPORT_NAME: Record<Sport, string> = { run: 'Run', walk: 'Walk', ride: 'Ride', strength: 'Strength', other: 'Workout' };
 const niceType = (t: string) => t.replace(/([a-z])([A-Z])/g, '$1 $2');
 export function partOfDay(ms: number) {
   const h = new Date(ms).getHours();
@@ -30,52 +31,25 @@ export type FeedItem = {
   durationSec: number | null;
   pace: number | null;
   avgHr: number | null;
-  /** for cards: exercises and sets of a strength session */
-  extra?: string;
   workout?: HealthWorkout;
   act?: ActivityView;
-  session?: Session;
 };
 
-/** Newest first. Strength sessions from Train are merged with a watch strength workout the same day. */
-export function feedItems(data: Pick<DataFiles, 'activities' | 'health' | 'training'>): FeedItem[] {
-  const out: FeedItem[] = [];
-  const strengthWatch = new Map<string, ActivityView[]>();
-  for (const a of allActivities(data)) {
-    const sport = sportOf(a.type);
-    if (sport === 'strength' && a.source === 'Apple Watch') {
-      const list = strengthWatch.get(a.date) ?? [];
-      list.push(a);
-      strengthWatch.set(a.date, list);
-    }
+/** Cardio activities, newest first. */
+export function feedItems(data: Pick<DataFiles, 'activities' | 'health'>): FeedItem[] {
+  const out: FeedItem[] = cardioActivities(data).map(a => {
+    const sport = sportOf(a.workout?.type ?? a.type);
     const startMs = a.watchStart ? hkTime(a.watchStart) : null;
+    const timed = startMs != null && Number.isFinite(startMs);
     const name = sport === 'other' ? niceType(a.workout?.type ?? a.type) : SPORT_NAME[sport];
-    out.push({
-      key: `a:${a.id}`, sport, date: a.date, startMs: Number.isFinite(startMs) ? startMs : null,
-      title: startMs != null && Number.isFinite(startMs) ? `${partOfDay(startMs)} ${name}` : a.source === 'Logged' && sport === 'other' ? a.type : name,
+    return {
+      key: `a:${a.id}`, sport, date: a.date, startMs: timed ? startMs : null,
+      title: timed ? `${partOfDay(startMs)} ${name.toLowerCase()}` : a.source === 'Logged' && sport === 'other' ? a.type : name,
       to: `/activity/${encodeURIComponent(a.id)}`,
       distanceKm: a.distanceKm ?? null, durationSec: a.durationSec ?? null, pace: sport === 'run' || sport === 'walk' ? pace(a) : null, avgHr: a.avgHr ?? null,
       workout: a.workout, act: a,
-    });
-  }
-  for (const s of data.training.sessions) {
-    const twins = strengthWatch.get(s.date);
-    const twin = twins?.shift();
-    if (twin) {
-      // the watch saw this session: one card, the Train entry with the watch's time and heart rate
-      const i = out.findIndex(x => x.act === twin);
-      if (i >= 0) out.splice(i, 1);
-    }
-    const sets = sessionSets(s);
-    out.push({
-      key: `s:${s.id}`, sport: 'strength', date: s.date,
-      startMs: twin?.watchStart ? hkTime(twin.watchStart) : null,
-      title: s.name || 'Strength', to: `/train/session/${encodeURIComponent(s.id)}`,
-      distanceKm: null, durationSec: twin?.durationSec ?? (s.durationMin ? s.durationMin * 60 : null), pace: null, avgHr: twin?.avgHr ?? null,
-      extra: `${s.exercises.length} exercise${s.exercises.length === 1 ? '' : 's'} · ${sets} set${sets === 1 ? '' : 's'}`,
-      session: s, ...(twin ? { workout: twin.workout, act: twin } : {}),
-    });
-  }
+    };
+  });
   const at = (x: FeedItem) => x.startMs ?? parseYmd(x.date).getTime();
   return out.sort((a, b) => at(b) - at(a));
 }

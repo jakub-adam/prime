@@ -518,6 +518,52 @@ export function bestSet(ex: Exercise) {
 export function sessionPrCount(sessions: Session[], s: Session, flags = prFlags(sessions)) {
   return s.exercises.filter(e => flags.has(s.id + '|' + e.name.toLowerCase())).length;
 }
+/* ---------- progressive overload: last time against the time before, and what to aim for next ---------- */
+export type Overload = {
+  name: string; kind: ExerciseKind;
+  /** best set of the most recent session with this exercise */
+  last: { date: string; set: SetEntry; m: number };
+  prev: { date: string; set: SetEntry; m: number } | null;
+  /** "+1 rep", "+2.5 kg", "Same as last time"; null the first time */
+  change: string | null;
+  /** true = more than last time, false = less, null = same or first time */
+  up: boolean | null;
+  /** best-set metric of the last few sessions, oldest first */
+  trend: number[];
+  /** a small step up from the last best set */
+  next: string;
+  sessions: number;
+};
+const plural = (n: number, w: string) => `${n} ${w}${Math.abs(n) === 1 ? '' : 's'}`;
+/** One entry per exercise, most recently trained first. */
+export function overload(sessions: Session[], limit = 6): Overload[] {
+  const names: string[] = [];
+  for (const s of [...sessions].sort(byDateDesc)) for (const e of s.exercises) if (!names.some(n => n.toLowerCase() === e.name.toLowerCase())) names.push(e.name);
+  const out: Overload[] = [];
+  for (const name of names) {
+    const h = exHistory(sessions, name).filter(x => Number.isFinite(x.m));
+    const a = h[h.length - 1], b = h[h.length - 2];
+    const sa = a ? bestSet(a.ex) : null;
+    if (!a || !sa) continue;
+    const kind = a.ex.kind;
+    const sb = b ? bestSet(b.ex) : null;
+    let change: string | null = null, up: boolean | null = null;
+    if (b && sb) {
+      const dKg = (sa.kg ?? 0) - (sb.kg ?? 0);
+      const d = kind === 'hold' ? (sa.sec ?? 0) - (sb.sec ?? 0) : kind === 'weight' && dKg !== 0 ? dKg : (sa.reps ?? 0) - (sb.reps ?? 0);
+      const sign = d > 0 ? '+' : d < 0 ? '−' : '';
+      change = d === 0 ? 'Same as last time' : kind === 'hold' ? `${sign}${Math.abs(d)} s` : kind === 'weight' && dKg !== 0 ? `${sign}${kgStr(Math.abs(d))} kg` : `${sign}${plural(Math.abs(d), 'rep')}`;
+      up = d === 0 ? null : d > 0;
+    }
+    const next = kind === 'hold' ? `${(sa.sec ?? 0) + 5} s`
+      : kind === 'bw' ? `${plural((sa.reps ?? 0) + 1, 'rep')}${sa.kg ? ` +${kgStr(+sa.kg)} kg` : ''}`
+      : (sa.reps ?? 0) >= 10 ? `${kgStr((sa.kg ?? 0) + 2.5)} kg × 8` : `${kgStr(sa.kg ?? 0)} kg × ${(sa.reps ?? 0) + 1}`;
+    out.push({ name: a.ex.name, kind, last: { date: a.date, set: sa, m: a.m }, prev: b && sb ? { date: b.date, set: sb, m: b.m } : null, change, up, trend: h.slice(-4).map(x => x.m), next, sessions: h.length });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 /** Personal records for one exercise. */
 export function exerciseRecords(sessions: Session[], name: string) {
   const h = exHistory(sessions, name);

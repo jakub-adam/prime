@@ -6,7 +6,7 @@ import { drafts, engine, useData, useDraft, useToday } from '@/app/store';
 import { NotFound } from '@/app/NotFound';
 import {
   bests, byDateDesc, draftFromSession, exerciseNames, exerciseRecords, exHistory, exMetric, fmtSet, KIND_LABEL, metricUnit, newDraft,
-  prFlags, sessionPrCount, sessionSets, sessionVolume, setMetric, type Draft,
+  prFlags, sessionPrCount, sessionSets, sessionVolume, setMetric, watchStrength, type Draft,
 } from '@/core/calc';
 import { fmtDay, fmtRelative, fmtShort } from '@/core/dates';
 import { EQUIPMENT_LABEL, exerciseInfo, MUSCLE_LABEL, type Muscle } from '@/core/exercises';
@@ -22,7 +22,7 @@ import { Confirm, useIsDesktop } from '@/components/ui/sheet';
 import { cn, fmt, fmtKg } from '@/lib/utils';
 import { MuscleFilter, useExerciseList } from './ExercisePicker';
 import { StartWorkoutSheet } from './StartWorkoutSheet';
-import { fmtMin, fmtVolume, Routines, SessionCard, TrainStats } from './train-ui';
+import { fmtMin, fmtVolume, LoadCard, OverloadList, Routines, SessionCard, WeekCard } from './train-ui';
 
 /* ---------- shell ---------- */
 function TrainActions() {
@@ -53,7 +53,7 @@ function TrainTabs() {
 function TrainHeader({ title = 'Train' }: { title?: string }) {
   return (
     <>
-      <PageHeader kicker="Training" title={title} actions={<TrainActions />} />
+      <PageHeader kicker="Strength training" title={title} actions={<TrainActions />} />
       <div className="mb-5"><TrainTabs /></div>
     </>
   );
@@ -96,15 +96,17 @@ function TrainHome() {
     <div>
       <TrainHeader />
       {sessions.length ? (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-          <TrainStats className="lg:col-span-12" />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <WeekCard className="lg:col-span-5" />
+          <LoadCard className="lg:col-span-7" />
+          <OverloadList className="lg:col-span-12" />
           <Routines className="lg:col-span-12" />
           <section aria-labelledby="history-h" className="lg:col-span-12">
-            <div className="mb-3 flex items-end justify-between">
-              <h2 id="history-h" className="text-[22px] font-semibold tracking-tight">History</h2>
-              <span className="text-[13px] text-muted">{sessions.length} workouts</span>
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 id="history-h" className="text-[17px] font-semibold tracking-tight">History</h2>
+              <span className="num text-[12px] text-muted">{sessions.length} {sessions.length === 1 ? 'workout' : 'workouts'}</span>
             </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               {sorted.slice(0, shown).map(s => <SessionCard key={s.id} s={s} flags={flags} />)}
             </div>
             {sorted.length > shown ? <Button variant="secondary" className="mt-4 w-full" onClick={() => setShown(n => n + 12)}>Show more</Button> : null}
@@ -166,6 +168,9 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
   const replace = useReplaceDraft();
   const vol = sessionVolume(s);
   const prs = sessionPrCount(sessions, s, flags);
+  // the same session as the watch recorded it: time, heart rate and energy
+  const watch = useMemo(() => watchStrength(data).get(s.date)?.[0], [data, s.date]);
+  const mins = s.durationMin ?? (watch ? Math.round(watch.durationSec / 60) : null);
   const actions = (
     <div className="flex items-center gap-2">
       <Button variant="lane" size="sm" onClick={() => replace.request({ ...newDraft(sessions, s.name, today, s), startedAt: Date.now() })}><Copy /> Repeat</Button>
@@ -191,7 +196,7 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
           {standalone ? <div className="mb-4">{actions}</div> : null}
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             {[
-              [<Clock key="c" />, 'Duration', s.durationMin ? fmtMin(s.durationMin) : '–'],
+              [<Clock key="c" />, 'Duration', mins ? fmtMin(mins) : '–'],
               [<Weight key="w" />, 'Volume', vol ? fmtVolume(vol) : '–'],
               [<Layers key="l" />, 'Sets', String(sessionSets(s))],
               [<Trophy key="t" />, 'Records', String(prs)],
@@ -202,7 +207,8 @@ function SessionDetail({ session: s, standalone }: { session: Session; standalon
               </div>
             ))}
           </dl>
-          {s.notes ? <p className="mt-4 rounded-xl border-l-4 border-lane bg-surface-2 px-4 py-3 text-[15px]">{s.notes}</p> : null}
+          {watch ? <p className="num mt-3 text-[13px] text-muted">Apple Watch: {fmtMin(Math.round(watch.durationSec / 60))}{watch.avgHr ? ` · average ${watch.avgHr} bpm` : ''}{watch.kcal ? ` · ${fmt(watch.kcal)} kcal` : ''}</p> : null}
+          {s.notes ? <p className="mt-4 rounded-[10px] bg-surface-2 px-4 py-3 text-[15px] shadow-card">{s.notes}</p> : null}
           <ol className="mt-4 flex flex-col gap-3">
             {s.exercises.map((ex, i) => {
               const isPr = flags.has(s.id + '|' + ex.name.toLowerCase());
