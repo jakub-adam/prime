@@ -1,18 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { useGoals, useHealthDays } from '@/app/store';
+import { useGoals, useHealthDays, useSnapshot, useToday } from '@/app/store';
 import { NotFound } from '@/app/NotFound';
 import { avg, CATEGORY, healthDays, isMetricKey, METRICS, metricSeries, rolling, STRESS_LABEL, stressFor, stressLevel } from '@/core/calc';
-import { addDays, daysBetween, fmtDay, fmtShort, mondayOf } from '@/core/dates';
+import { addDays, fmtClock, fmtDay, fmtShort, mondayOf } from '@/core/dates';
 import { Legend, TimeChart, type ChartColor, type Series } from '@/components/charts';
 import { EmptyState, KV, PageHeader } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/misc';
 import { CategoryIcon } from '@/features/health/health-ui';
-import { cn, fmt } from '@/lib/utils';
+import { cn, fmt, signed } from '@/lib/utils';
+import { HourlyChart } from './HourlyChart';
 
-type Range = '7' | '30' | '182' | '365' | 'all';
+/** 1 = today hour by hour (from the Shortcut's samples); the rest are day by day, then week by week */
+type Range = '1' | '7' | '14' | '30' | '182' | '365';
+/** things that add up over a day; everything else is a reading */
+const COUNTED = new Set(['steps', 'distanceKm', 'flights', 'activeKcal', 'basalKcal', 'exerciseMin']);
 
 const stressColor = (v: number): ChartColor => { const l = stressLevel(v); return l === 'high' ? 'track' : l === 'moderate' ? 'muted' : 'lane'; };
 
@@ -80,7 +84,10 @@ function weeklyRows(daily: DailyRow[], dp: number) {
 export function MetricPage() {
   const { key } = useParams();
   const g = useGoals();
-  const [range, setRange] = useState<Range>('30');
+  const [range, setRange] = useState<Range>('14');
+  const [picked, setPicked] = useState<string | null>(null);
+  const { live } = useSnapshot();
+  const today = useToday();
   const nav = useNavigate();
   const days = useHealthDays();
   const k = isMetricKey(key) ? key : null;
@@ -90,7 +97,6 @@ export function MetricPage() {
   const cat = CATEGORY[def.category];
   const back = def.category === 'sleep' ? '/health/sleep' : `/health/${def.category}`;
   const lastDay = all[all.length - 1];
-  const firstDay = all[0];
   const goal = k === 'steps' ? g.stepsGoal : k === 'sleepH' ? g.sleepGoalH : null;
   const f = (v: number | null | undefined) => fmt(v, def.dp);
   const unitStr = def.unit === 'steps' || def.unit === 'score' ? '' : ` ${def.unit}`;
@@ -107,7 +113,7 @@ export function MetricPage() {
     );
   }
 
-  const n = range === 'all' ? Math.max(7, daysBetween(firstDay!, lastDay) + 1) : +range;
+  const n = range === '1' ? 7 : +range;
   const weekly = n > 92;
   const from = addDays(lastDay, -(n - 1));
   const series = metricSeries(days, k, from, lastDay);
@@ -131,7 +137,7 @@ export function MetricPage() {
   const highest = withV.length ? withV.reduce((x, y) => (y.v! > x.v! ? y : x)) : null;
   const hit = goal != null ? vals.filter(v => v >= goal).length : null;
   const trendGood = a != null && prevAvg != null && def.higherIsBetter != null ? (a > prevAvg) === def.higherIsBetter : null;
-  const rangeLabel = range === 'all' ? 'All-time' : range === '7' ? 'Week' : range === '30' ? '30-day' : range === '182' ? '6-month' : '1-year';
+  const rangeLabel = range === '182' ? '6-month' : range === '365' ? '1-year' : `${n}-day`;
   const fmtV = (v: number) => (k === 'stress' ? `${f(v)} · ${STRESS_LABEL[stressLevel(v)]}` : `${f(v)}${unitStr}`);
 
   const weeks: { start: string; avg: number | null; n: number }[] = [];
@@ -158,10 +164,53 @@ export function MetricPage() {
   const third = rangeLow ? { k: 'Lowest', ...stat(rangeLow) } : def.higherIsBetter == null ? { k: 'Lowest', ...stat(lowest) } : { k: def.higherIsBetter ? 'Best day' : 'Lowest', ...stat(best) };
   const fourth = rangeHigh ? { k: 'Highest', ...stat(rangeHigh) } : def.higherIsBetter == null ? { k: 'Highest', ...stat(highest) } : { k: def.higherIsBetter ? 'Lowest day' : 'Highest', ...stat(worst) };
 
+  const header = (
+    <PageHeader back={back} kicker={cat.label} title={title}
+      actions={<Segmented label="Range" value={range} onChange={setRange} options={[['1', '1D'], ['7', '7D'], ['14', '14D'], ['30', '30D'], ['182', '6M'], ['365', '1Y']]} />} />
+  );
+  const more = (
+    <nav aria-label={`More in ${cat.label}`} className="lg:col-span-12">
+      <div className="flex flex-wrap gap-2">
+        {cat.metrics.filter(m => m !== k && Object.values(days).some(d => d[m] != null)).map(m => (
+          <Button key={m} asChild variant="secondary" size="sm"><Link to={m === 'sleepH' ? '/health/sleep' : `/health/metric/${m}`}>{METRICS[m].label}</Link></Button>
+        ))}
+        <Button asChild variant="ghost" size="sm" className="text-lane-ink"><Link to={back}>All {cat.label}</Link></Button>
+      </div>
+    </nav>
+  );
+
+  if (range === '1') {
+    const fresh = live && live.date === today ? live : null;
+    const samples = fresh?.series?.[k];
+    const exportedAt = fresh?.at ? Date.parse(fresh.at) : NaN;
+    return (
+      <div>
+        {header}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
+          <Card className="lg:col-span-12">
+            <CardHeader title={`${def.label} today`} meta={samples?.length ? `${fmt(samples.length)} samples${Number.isFinite(exportedAt) ? ` · as of ${fmtClock(exportedAt)}` : ''}${unitStr ? ` ·${unitStr}` : ''} · select a bar to read it` : 'Hour by hour'} />
+            <CardBody>
+              {samples?.length ? (
+                <HourlyChart samples={samples} counted={COUNTED.has(k)} unit={def.unit === 'score' ? '' : def.unit} dp={def.dp} color={`var(--cat-${def.category})`} />
+              ) : (
+                <EmptyState title="No samples for today yet">
+                  The hour-by-hour view is built from the Apple Health Shortcut’s export for today{fresh ? ', and this metric was not in it' : ', which has not arrived yet'}. Days before today are kept as daily values: use 7D, 14D or 30D.
+                </EmptyState>
+              )}
+              <p className="mt-3 text-[13px] text-muted">{def.blurb}</p>
+            </CardBody>
+          </Card>
+          {more}
+        </div>
+      </div>
+    );
+  }
+
+  const selRow = !weekly ? (daily.find(r => r.date === picked && r.v != null) ?? [...daily].reverse().find(r => r.v != null) ?? null) : null;
+
   return (
     <div>
-      <PageHeader back={back} kicker={cat.label} title={title}
-        actions={<Segmented label="Range" value={range} onChange={setRange} options={[['7', 'W'], ['30', 'M'], ['182', '6M'], ['365', 'Y'], ['all', 'All']]} />} />
+      {header}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-12">
           <KV k={`${rangeLabel} avg`} v={f(a)} sub={prevAvg != null && a != null ? <span className={cn(trendGood === true && 'text-good', trendGood === false && 'text-bad')}>{a - prevAvg >= 0 ? '+' : '−'}{fmt(Math.abs(a - prevAvg), def.dp)} vs previous period</span> : unitStr.trim()} />
@@ -174,7 +223,7 @@ export function MetricPage() {
           <KV k={fourth.k} v={fourth.v} sub={fourth.sub} />
         </div>
         <Card className="lg:col-span-8">
-          <CardHeader title={weekly ? `${def.label} by week` : `${def.label} per day`} meta={`${fmtShort(from)} – ${fmtShort(lastDay)}${def.unit && def.unit !== 'score' ? ` · ${def.unit}` : ''}${weekly ? '' : ' · tap a day for all its stats'}`} />
+          <CardHeader title={weekly ? `${def.label} by week` : `${def.label} per day`} meta={`${fmtShort(from)} – ${fmtShort(lastDay)}${def.unit && def.unit !== 'score' ? ` · ${def.unit}` : ''}${weekly ? '' : ' · select a day to read it'}`} />
           <CardBody>
             <TimeChart
               data={rows}
@@ -185,8 +234,19 @@ export function MetricPage() {
               series={[...mainSeries, ...avgSeries]}
               yFormat={k === 'steps' ? v => (v >= 1000 ? `${v / 1000}k` : String(v)) : undefined}
               ariaLabel={`${def.label} ${weekly ? 'by week' : 'per day'}`}
-              onSelect={weekly ? undefined : d => nav(`/health/day/${d}`)}
+              onSelect={weekly ? undefined : d => setPicked(d)}
             />
+            {selRow ? (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-[10px] bg-surface-2 px-3.5 py-2.5 shadow-card" aria-live="polite">
+                <span className="text-[13px] text-muted">{fmtDay(selRow.date)}</span>
+                <span className="num">
+                  <span className="text-[17px] font-semibold">{selRow.lo != null && selRow.hi != null && k === 'hrAvg' ? `${f(selRow.lo)}–${f(selRow.hi)} bpm` : fmtV(selRow.v!)}</span>
+                  {selRow.lo != null && k === 'hrAvg' ? <span className="ml-2 text-[13px] text-muted">average {f(selRow.v)}</span> : null}
+                  {a != null ? <span className="ml-2 text-[13px] text-muted">{signed(selRow.v! - a, def.dp)} vs {rangeLabel} avg</span> : null}
+                </span>
+                <Button variant="ghost" size="sm" className="-mr-2 text-lane-ink" onClick={() => nav(`/health/day/${selRow.date}`)}>Open day</Button>
+              </div>
+            ) : null}
             <div className="mt-3">
               <Legend items={[
                 ...(k === 'stress'
@@ -225,14 +285,7 @@ export function MetricPage() {
           </CardBody>
         </Card>
         {k === 'stress' ? <StressDrivers date={lastDay} /> : null}
-        <nav aria-label={`More in ${cat.label}`} className="lg:col-span-12">
-          <div className="flex flex-wrap gap-2">
-            {cat.metrics.filter(m => m !== k && Object.values(days).some(d => d[m] != null)).map(m => (
-              <Button key={m} asChild variant="secondary" size="sm"><Link to={m === 'sleepH' ? '/health/sleep' : `/health/metric/${m}`}>{METRICS[m].label}</Link></Button>
-            ))}
-            <Button asChild variant="ghost" size="sm" className="text-lane-ink"><Link to={back}>All {cat.label}</Link></Button>
-          </div>
-        </nav>
+        {more}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 /* Demo data, shown only when no data repo is connected. Deterministic for a given day. */
 import { addDays, pad, parseYmd, todayStr } from './dates';
+import type { LiveDay, Sample } from './live';
 import { defaults } from './ops';
 import { syntheticWorkout } from './synthetic';
-import type { DataFiles, ExerciseKind, HealthWorkout, WorkoutDetail } from './types';
+import type { DataFiles, ExerciseKind, HealthDay, HealthWorkout, WorkoutDetail } from './types';
 import { analyzeWorkout, detailPath, isoUtc, workoutId } from './workout';
 
 /** "2026-10-21 07:05:00 +0200" for a local day and clock time, with the real offset that day. */
@@ -148,4 +149,28 @@ export function sampleData(t = todayStr()): DataFiles {
     { id: `${addDays(t, -2)}_m2`, date: addDays(t, -2), waist: 90.5, chest: 104, arm: 37.5, thigh: 59.5 },
   );
   return d;
+}
+
+/** Demo "live" day: what the iPhone Shortcut would have sent today, with timed samples, so demo mode
+    shows the latest readings and the hour-by-hour view. Deterministic; never real data. */
+export function sampleLive(t = todayStr(), now = Date.now()): LiveDay {
+  const start = parseYmd(t); start.setHours(0, 0, 0, 0);
+  const hr: Sample[] = [], steps: Sample[] = [];
+  for (let m = 5, i = 0; start.getTime() + m * 60000 <= now; m += 7, i++) {
+    const h = m / 60;
+    const active = h > 7 && h < 22;
+    const walk = (h > 8 && h < 8.6) || (h > 12 && h < 12.8) || (h > 17.5 && h < 18.3);
+    hr.push({ t: start.getTime() + m * 60000, v: Math.round((active ? 68 : 54) + (walk ? 38 : 0) + 6 * Math.sin(i * 0.9) + 4 * Math.sin(i * 0.37)) });
+    if (active && i % 4 === 0) steps.push({ t: start.getTime() + m * 60000, v: walk ? 780 + (i % 5) * 60 : 90 + (i % 7) * 25 });
+  }
+  const lastHr = hr[hr.length - 1];
+  const at = new Date(now).toISOString();
+  const day: HealthDay = {};
+  if (hr.length) { day.hrAvg = Math.round(hr.reduce((s, x) => s + x.v, 0) / hr.length); day.hrMin = Math.min(...hr.map(x => x.v)); day.hrMax = Math.max(...hr.map(x => x.v)); }
+  if (steps.length) day.steps = steps.reduce((s, x) => s + x.v, 0);
+  return {
+    date: t, at, file: 'sample', day,
+    latest: { ...(lastHr ? { hrAvg: { v: lastHr.v, at: new Date(lastHr.t!).toISOString() } } : {}), ...(steps.length ? { steps: { v: day.steps!, at } } : {}) },
+    series: { ...(hr.length ? { hrAvg: hr } : {}), ...(steps.length ? { steps } : {}) },
+  };
 }

@@ -41,6 +41,8 @@ export type EngineOptions = {
   sample: () => DataFiles;
   /** demo workouts/<id>.json files for sample mode */
   sampleDetails?: () => Record<string, WorkoutDetail>;
+  /** demo Shortcut export for sample mode */
+  sampleLive?: () => LiveDay | null;
   fetch?: FetchLike;
   toast?: ToastFn;
 };
@@ -55,11 +57,13 @@ export class SyncEngine {
   private fetchImpl: FetchLike | undefined;
   private toastFn: ToastFn;
   private sampleDetails: () => Record<string, WorkoutDetail>;
+  private sampleLive: () => LiveDay | null;
   /** workouts/<id>.json already loaded or written this session; sample mode keeps imports here too */
   private details = new Map<string, WorkoutDetail>();
 
   constructor(opts: EngineOptions) {
     this.sampleDetails = opts.sampleDetails ?? (() => ({}));
+    this.sampleLive = opts.sampleLive ?? (() => null);
     this.kv = opts.kv;
     this.sample = opts.sample;
     this.fetchImpl = opts.fetch;
@@ -106,7 +110,7 @@ export class SyncEngine {
   async load() {
     if (!this.connected()) {
       this.details = new Map(Object.entries(this.sampleDetails()));
-      this.set({ mode: 'sample', data: this.sample(), loading: false, sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null, live: null });
+      this.set({ mode: 'sample', data: this.sample(), loading: false, sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null, live: this.sampleLive() });
       return;
     }
     const cache = readJSON<Cache>(this.kv, KEYS.cache);
