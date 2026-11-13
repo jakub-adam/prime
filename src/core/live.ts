@@ -13,6 +13,11 @@ export type ShortcutExport = {
   [k: string]: unknown;
 };
 
+/** One reading and, when the Shortcut sends sample times, when it was taken (ISO). */
+export type Reading = { v: number; at?: string };
+/** One sample of today's list; `t` (epoch ms) only when the Shortcut sends sample times. */
+export type Sample = { v: number; t?: number };
+
 export type LiveDay = {
   /** day the values belong to (YYYY-MM-DD) */
   date: string;
@@ -21,7 +26,44 @@ export type LiveDay = {
   /** inbox file they came from */
   file: string;
   day: HealthDay;
+  /** latest value per health.json key: the newest sample for readings (needs sample times), the
+      running total as of the export for counted things like steps */
+  latest?: Record<string, Reading>;
+  /** today's samples per health.json key, for the hourly view */
+  series?: Record<string, Sample[]>;
 };
+
+/* Sample lists in the export: field, health.json key, how the day value is built, decimals.
+   Sample times come as a parallel list in "<field>_at" (same date formats as sleep_start). */
+const SAMPLED: [string, string, 'sum' | 'mean', number][] = [
+  ['steps', 'steps', 'sum', 0], ['distance_km', 'distanceKm', 'sum', 2], ['flights', 'flights', 'sum', 0],
+  ['active_kcal', 'activeKcal', 'sum', 0], ['resting_kcal', 'basalKcal', 'sum', 0], ['exercise_min', 'exerciseMin', 'sum', 0],
+  ['heart_rate', 'hrAvg', 'mean', 0], ['resting_hr_bpm', 'restingHr', 'mean', 0], ['walking_hr_avg', 'walkingHr', 'mean', 0],
+  ['hrv_ms', 'hrv', 'mean', 0], ['respiratory_rate', 'respiratoryRate', 'mean', 1], ['blood_oxygen', 'spo2', 'mean', 0],
+];
+const MAX_SAMPLES = 720;
+
+/** Latest readings and today's samples from the export's lists. */
+export function parseSamples(t: Record<string, string | number | null | undefined>, exportedAt: string) {
+  const latest: Record<string, Reading> = {}, series: Record<string, Sample[]> = {};
+  for (const [field, key, mode, dp] of SAMPLED) {
+    const vals = numbers(t[field]).map(v => (key === 'spo2' && v <= 1 ? v * 100 : v));
+    if (!vals.length) continue;
+    const times = String(t[field + '_at'] ?? '').split(/\r?\n/).filter(s => s.trim()).map(shortcutDate);
+    const timed = times.length === vals.length && times.every(x => x != null);
+    const samples: Sample[] = vals.map((v, i) => (timed ? { v, t: times[i]! } : { v }));
+    if (timed) samples.sort((a, b) => a.t! - b.t!);
+    series[key] = samples.slice(-MAX_SAMPLES);
+    if (mode === 'sum') {
+      latest[key] = { v: r(total(vals), dp)!, ...(exportedAt ? { at: exportedAt } : {}) };
+    } else if (timed) {
+      const last = samples[samples.length - 1]!;
+      latest[key] = { v: r(last.v, dp)!, at: new Date(last.t!).toISOString() };
+    }
+    // Readings without sample times have no known order, so no "latest" is claimed for them.
+  }
+  return { latest, series };
+}
 
 export const INBOX_DIR = 'inbox';
 const INBOX_FILE = /^health_(\d{4}-\d{2}-\d{2})(?:_(\d{2})(\d{2})(\d{2}))?\.json$/;
@@ -174,7 +216,8 @@ export function parseShortcutExport(x: ShortcutExport, file = ''): LiveDay | nul
   }
 
   if (!Object.keys(day).length) return null;
-  return { date, at: typeof x.exported_at === 'string' ? x.exported_at : '', file, day };
+  const at = typeof x.exported_at === 'string' ? x.exported_at : '';
+  return { date, at, file, day, ...parseSamples(t, at) };
 }
 
 /** health.json days with the live day laid over its date. When health.json was imported after the

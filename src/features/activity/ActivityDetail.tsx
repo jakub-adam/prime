@@ -3,7 +3,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { NotFound } from '@/app/NotFound';
 import { engine, useData, useGoals, useResolvedTheme, useToday } from '@/app/store';
-import { fmtDur, isRun, pace, riegel10k } from '@/core/calc';
+import { fmtDur, isRun, pace } from '@/core/calc';
 import { fmtLong, fmtRelative } from '@/core/dates';
 import type { BestEfforts, WorkoutDetail } from '@/core/types';
 import { hkTime, paceSeries } from '@/core/workout';
@@ -103,7 +103,6 @@ export function ActivityDetail() {
   if (w?.avgCadence) headline.push(['Cadence', String(w.avgCadence), 'spm']);
   if (a.kcal) headline.push(['Energy', fmt(a.kcal), 'kcal']);
 
-  const proj = run && a.distanceKm && a.distanceKm >= 1 ? riegel10k(a.durationSec, a.distanceKm) : null;
   const efforts = (w?.bestEfforts ?? {}) as BestEfforts;
   const dynamics: [string, string][] = [
     ['Avg power', w?.avgPowerW ? `${w.avgPowerW} W` : ''],
@@ -220,12 +219,11 @@ export function ActivityDetail() {
               </CardBody>
             </Card>
           ) : null}
-          {run && (Object.keys(efforts).length || proj) ? (
+          {run && Object.keys(efforts).length ? (
             <Card>
               <CardHeader title="Best efforts" meta="Fastest stretch inside this run" />
               <CardBody className="grid grid-cols-3 gap-3">
                 {(['1k', '3k', '5k', '10k'] as const).filter(k => efforts[k]).map(k => <Stat key={k} label={k.replace('k', ' km')} value={fmtDur(efforts[k])} />)}
-                {proj ? <Stat label="10 km projection" value={fmtDur(proj)} className="col-span-2" /> : null}
               </CardBody>
             </Card>
           ) : null}

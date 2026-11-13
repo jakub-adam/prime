@@ -1,5 +1,5 @@
 /* Domain calculations. Formulas are unchanged from Prime v1:
-   Epley e1RM, Riegel 10 km projection, 7-day rolling weight average. */
+   Epley e1RM and the 7-day rolling weight average. */
 import { addDays, daysBetween, mondayOf, range } from './dates';
 import { DEFAULT_SLEEP_GOAL_H, DEFAULT_STEPS_GOAL } from './ops';
 import { DEFAULT_MAX_HR, DEFAULT_PRIVACY_M, idOf, mergeWorkouts } from './workout';
@@ -22,7 +22,6 @@ export function goals(s: Settings) {
     kcal: s.targets?.kcal || 2350,
     protein: s.targets?.protein || 160,
     goalWeight: s.goalWeight || 79,
-    tenKGoalMin: s.tenKGoalMin || 45,
     stepsGoal: s.stepsGoal || DEFAULT_STEPS_GOAL,
     sleepGoalH: s.sleepGoalH || DEFAULT_SLEEP_GOAL_H,
     maxHr: s.maxHr || DEFAULT_MAX_HR,
@@ -239,8 +238,6 @@ export function fmtDur(sec: number | null | undefined) {
 }
 export const pace = (a: { distanceKm?: number | null; durationSec?: number | null }) =>
   a.distanceKm && a.durationSec ? a.durationSec / a.distanceKm : null;
-/** Riegel: T2 = T1 × (D2 / D1)^1.06 */
-export const riegel10k = (durationSec: number, distanceKm: number) => durationSec * Math.pow(10 / distanceKm, 1.06);
 
 export type ActivityView = Activity & {
   source: 'Logged' | 'Apple Watch';
@@ -252,6 +249,8 @@ export type ActivityView = Activity & {
   workout?: HealthWorkout;
 };
 export const isRun = (type: string) => /run/i.test(type);
+/** Strength work recorded by the watch belongs to Train, not to the cardio feed. */
+export const isStrengthType = (type: string) => /strength|lift|core|weights?|upper|lower|functional|hiit|cross ?training/i.test(type);
 export const watchId = (start: string) => 'w' + start;
 const typeKey = (t: string) => (isRun(t) ? 'run' : /walk/i.test(t) ? 'walk' : /cycl|bike/i.test(t) ? 'bike' : /swim/i.test(t) ? 'swim' : /hik/i.test(t) ? 'hike' : t.toLowerCase());
 const close = (a: number | null | undefined, b: number | null | undefined, tol = 0.1) =>
@@ -289,6 +288,16 @@ export function allActivities(data: Pick<DataFiles, 'activities' | 'health'>): A
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.watchStart || '').localeCompare(a.watchStart || '')));
 }
+/** Cardio only: runs, walks, rides and other distance or heart-rate sessions. Strength lives in Train. */
+export function cardioActivities(data: Pick<DataFiles, 'activities' | 'health'>): ActivityView[] {
+  return allActivities(data).filter(a => !isStrengthType(a.workout?.type ?? a.type));
+}
+/** Watch strength workouts by day, to show their time, heart rate and energy on Train sessions. */
+export function watchStrength(data: Pick<DataFiles, 'activities' | 'health'>): Map<string, ActivityView[]> {
+  const out = new Map<string, ActivityView[]>();
+  for (const a of allActivities(data)) if (a.source === 'Apple Watch' && isStrengthType(a.workout?.type ?? a.type)) out.set(a.date, [...(out.get(a.date) ?? []), a]);
+  return out;
+}
 const SHORT_TYPE: Record<string, string> = { Running: 'Run', Walking: 'Walk', Cycling: 'Ride', Hiking: 'Hike', Swimming: 'Swim' };
 export const shortType = (t: string) => SHORT_TYPE[t] ?? t;
 export function activityLabel(a: { type: string; distanceKm?: number | null; durationSec?: number }) {
@@ -296,21 +305,12 @@ export function activityLabel(a: { type: string; distanceKm?: number | null; dur
   if (a.distanceKm) return `${t} ${a.distanceKm.toFixed(1)} km`;
   return `${t} ${Math.round((a.durationSec || 0) / 60)} min`;
 }
-export function tenKProjection(acts: ActivityView[], today: string) {
-  const runs = acts.filter(a => isRun(a.type) && pace(a) && a.date >= addDays(today, -42) && (a.distanceKm || 0) >= 2);
-  let best: { sec: number; from: ActivityView } | null = null;
-  for (const r of runs) {
-    const sec = riegel10k(r.durationSec, r.distanceKm!);
-    if (!best || sec < best.sec) best = { sec, from: r };
-  }
-  return best;
-}
 
 /* ---------- week strip (real data only) ---------- */
 export type WeekItem = { kind: 'session' | 'activity'; id: string; label: string; href: string };
 export type WeekDay = { date: string; items: WeekItem[]; state: 'logged' | 'rest' | 'empty'; isToday: boolean; isFuture: boolean };
 export function weekStrip(data: DataFiles, monday: string, today: string): WeekDay[] {
-  const acts = allActivities(data);
+  const acts = cardioActivities(data);
   return range(monday, 7).map(date => {
     const items: WeekItem[] = [
       ...data.training.sessions.filter(s => s.date === date).map(s => ({ kind: 'session' as const, id: s.id, label: s.name, href: `/train/session/${encodeURIComponent(s.id)}` })),

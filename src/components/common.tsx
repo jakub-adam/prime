@@ -1,8 +1,9 @@
-import { ArrowLeft, ChevronRight, CloudOff, Loader2, TriangleAlert, Check, FlaskConical, GitMerge } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useSyncExternalStore, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { engine, useSnapshot } from '@/app/store';
+import { engine, useSnapshot, useToday } from '@/app/store';
+import { fmtClock, fmtShort } from '@/core/dates';
 import { cn, fmt } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/misc';
@@ -46,33 +47,43 @@ export function useOnline() {
   return useSyncExternalStore(subOnline, () => navigator.onLine, () => true);
 }
 
-/* ---------- sync chip ---------- */
-export function SyncChip({ className, rail }: { className?: string; rail?: boolean }) {
+/* ---------- status line: saved state and data freshness in one quiet place ---------- */
+export function StatusLine({ className, rail, compact }: { className?: string; rail?: boolean; compact?: boolean }) {
   const s = useSnapshot();
   const online = useOnline();
+  const today = useToday();
   const pending = engine.pendingCount();
-  let label: string, tone: string, Icon = Check, spin = false;
-  if (s.mode === 'sample') { label = 'Demo'; tone = 'bg-surface-3 text-muted'; Icon = FlaskConical; }
-  else if (!online || s.sync.kind === 'offline') { label = 'Offline'; tone = 'bg-warn-soft text-warn'; Icon = CloudOff; }
-  else if (s.sync.kind === 'loading') { label = 'Loading'; tone = 'bg-surface-3 text-muted'; Icon = Loader2; spin = true; }
-  else if (s.sync.kind === 'saving') { label = 'Saving'; tone = 'bg-lane-soft text-lane-ink'; Icon = Loader2; spin = true; }
-  else if (s.sync.kind === 'conflict') { label = 'Conflict'; tone = 'bg-bad-soft text-bad'; Icon = GitMerge; }
-  else if (s.sync.kind === 'error') { label = 'Error'; tone = 'bg-bad-soft text-bad'; Icon = TriangleAlert; }
-  else { label = 'Synced'; tone = 'bg-good-soft text-good'; }
-  const detail = s.mode === 'sample' ? 'Demo data. Nothing is saved.' : `${s.sync.msg || label}${pending ? ` · ${pending} unsaved change${pending === 1 ? '' : 's'}` : ''}`;
+  let label: string, dot: string, ok = false;
+  if (s.mode === 'sample') { label = 'Demo data'; dot = 'bg-muted'; }
+  else if (!online || s.sync.kind === 'offline') { label = 'Offline'; dot = 'bg-warn'; }
+  else if (s.sync.kind === 'loading') { label = 'Loading'; dot = 'bg-muted animate-pulse'; }
+  else if (s.sync.kind === 'saving') { label = 'Saving'; dot = 'bg-accent animate-pulse'; }
+  else if (s.sync.kind === 'conflict') { label = 'Conflict'; dot = 'bg-bad'; }
+  else if (s.sync.kind === 'error') { label = 'Sync error'; dot = 'bg-bad'; }
+  else { const at = s.syncedAt ?? s.cachedAt; label = at ? `Synced ${fmtClock(at)}` : 'Synced'; dot = 'bg-good'; ok = true; }
+  if (pending && s.mode === 'github' && s.sync.kind !== 'saving') label += ` · ${pending} unsaved`;
+  // Apple Health freshness: the Shortcut's export today, else the day of the last export or import.
+  const liveAt = s.live?.at ? Date.parse(s.live.at) : NaN;
+  const health = s.mode !== 'github' ? null
+    : s.live && Number.isFinite(liveAt) ? (s.live.date === today ? fmtClock(liveAt) : fmtShort(s.live.date))
+    : s.data.health.importedAt ? fmtShort(s.data.health.importedAt.slice(0, 10)) : null;
+  const detail = s.mode === 'sample' ? 'Demo data. Nothing is saved.' : `${s.sync.msg || label}${health ? `. Apple Health data from ${health}` : ''}`;
   return (
     <Link
       to="/settings"
       title={detail}
       aria-label={`Sync status: ${label}. ${detail}`}
-      className={cn('inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors', tone, className)}
+      className={cn('flex items-center gap-2 rounded-lg text-[12px] leading-tight text-muted transition-colors hover:text-ink', compact && 'h-11 px-2', className)}
     >
-      <Icon aria-hidden className={cn('size-3.5', spin && 'animate-spin')} />
-      <span role="status" aria-live="polite" className={cn(rail && 'max-xl:sr-only')}>{label}</span>
-      {pending && s.mode === 'github' && s.sync.kind !== 'saving' ? <span className="num rounded-full bg-surface/70 px-1.5 text-xs">{pending}</span> : null}
+      <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', dot)} />
+      <span role="status" aria-live="polite" className={cn('flex flex-col', rail && 'max-xl:sr-only')}>
+        {compact ? <span>{ok && health ? `Health ${health}` : label}</span> : <><span className="text-ink/90">{label}</span>{health ? <span>Apple Health {health}</span> : null}</>}
+      </span>
     </Link>
   );
 }
+/** @deprecated use StatusLine */
+export const SyncChip = StatusLine;
 
 /* ---------- stat tile ---------- */
 export function StatTile({ to, label, value, unit, sub, chart, tone, className }: {

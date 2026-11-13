@@ -132,7 +132,8 @@ export type WorkoutDetail = {
 export type Settings = {
   targets: { kcal: number; protein: number };
   goalWeight: number;
-  tenKGoalMin: number;
+  /** no longer used by the app; left alone in settings.json */
+  tenKGoalMin?: number;
   stepsGoal?: number;
   sleepGoalH?: number;
   /** max heart rate for workout zones (default 202) */

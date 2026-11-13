@@ -26,6 +26,8 @@ export type Snapshot = {
   pending: Pending;
   sync: SyncState;
   cachedAt: number | null;
+  /** when the data was last loaded from or saved to GitHub in this session */
+  syncedAt: number | null;
   /** newest Shortcut export from inbox/ (display only) */
   live: LiveDay | null;
   liveChecking: boolean;
@@ -62,7 +64,7 @@ export class SyncEngine {
     this.sample = opts.sample;
     this.fetchImpl = opts.fetch;
     this.toastFn = opts.toast ?? (() => {});
-    this.state = { mode: 'sample', loading: false, data: defaults(), sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null, live: null, liveChecking: false, liveCheckedAt: null };
+    this.state = { mode: 'sample', loading: false, data: defaults(), sha: {}, pending: {}, sync: { kind: 'idle', msg: '' }, cachedAt: null, syncedAt: null, live: null, liveChecking: false, liveCheckedAt: null };
   }
 
   /* ---- store interface (useSyncExternalStore) ---- */
@@ -122,7 +124,8 @@ export class SyncEngine {
     } else {
       this.set({ mode: 'github', loading: true, data: defaults(), sha: {}, pending: {}, cachedAt: null });
     }
-    this.setSync('loading', 'Loading…');
+    // A refresh over data that is already on screen stays quiet: only a first load shows "Loading".
+    if (!(cache && cache.data)) this.setSync('loading', 'Loading…');
     try {
       const client = this.client();
       await client.repoInfo();
@@ -134,7 +137,7 @@ export class SyncEngine {
         data[f] = applyOps(r.data as Record<string, unknown>, this.state.pending[f] || []);
         sha[f] = r.sha;
       });
-      this.set({ data: data as DataFiles, sha, loading: false, cachedAt: Date.now() });
+      this.set({ data: data as DataFiles, sha, loading: false, cachedAt: Date.now(), syncedAt: Date.now() });
       this.persistCache();
       this.setSync('synced', 'Synced');
       for (const f of FILES) if ((this.state.pending[f] || []).length) void this.flush(f);
@@ -182,6 +185,7 @@ export class SyncEngine {
           throw e;
         }
       }
+      this.set({ syncedAt: Date.now() });
       this.setSync('synced', 'Saved');
     } catch (e) {
       this.fail(e, conflict);

@@ -3,7 +3,7 @@ import { mergeWorkouts } from './workout';
 
 export const FILES: FileName[] = ['food', 'training', 'body', 'activities', 'health', 'settings'];
 
-export const DEFAULT_SETTINGS = { targets: { kcal: 2350, protein: 160 }, goalWeight: 79, tenKGoalMin: 45 };
+export const DEFAULT_SETTINGS = { targets: { kcal: 2350, protein: 160 }, goalWeight: 79 };
 export const DEFAULT_STEPS_GOAL = 8000;
 export const DEFAULT_SLEEP_GOAL_H = 7;
 

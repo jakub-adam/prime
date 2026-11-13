@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   allActivities, dayTotals, draftToSession, e1rm, fmtDur, goals, newDraft, parseDur, prFlags, recentSessionNames,
-  riegel10k, rollingAvg, tenKProjection, weekStrip, weightSeries, presentMetrics,
+  rollingAvg, weekStrip, weightSeries, presentMetrics,
 } from './calc';
 import { CSV_DATASETS, toCsv } from './csv';
 import { stressFor, stressLevel, withStress } from './calc';
-import { addDays, mondayOf } from './dates';
+import { mondayOf } from './dates';
 import { defaults } from './ops';
 import type { Session } from './types';
 
@@ -16,10 +16,6 @@ describe('formulas', () => {
   it('Epley e1RM', () => {
     expect(e1rm(100, 1)).toBe(100);
     expect(e1rm(100, 5)).toBeCloseTo(116.667, 3);
-  });
-  it('Riegel 10 km projection', () => {
-    expect(riegel10k(1500, 5)).toBeCloseTo(1500 * Math.pow(2, 1.06), 6);
-    expect(fmtDur(riegel10k(22 * 60, 5))).toBe('45:52');
   });
   it('durations', () => {
     expect(parseDur('25:30')).toBe(1530);
@@ -34,7 +30,7 @@ describe('formulas', () => {
     expect(rollingAvg(s, '2026-10-24')).toBe(86);
   });
   it('goal defaults', () => {
-    expect(goals(defaults().settings)).toEqual({ kcal: 2350, protein: 160, goalWeight: 79, tenKGoalMin: 45, stepsGoal: 8000, sleepGoalH: 7, maxHr: 202, easyPaceSec: 390, importRoutes: true, routePrivacyM: 200 });
+    expect(goals(defaults().settings)).toEqual({ kcal: 2350, protein: 160, goalWeight: 79, stepsGoal: 8000, sleepGoalH: 7, maxHr: 202, easyPaceSec: 390, importRoutes: true, routePrivacyM: 200 });
   });
 });
 
@@ -99,11 +95,6 @@ describe('activities and the week strip', () => {
     expect(wk[2]!.items.map(i => i.label)).toEqual(['Run 5.2 km']);
     expect(wk[3]!.items.map(i => i.label)).toEqual(['Walk 3.1 km', 'Run 4.0 km']);
     expect(wk[4]!.isToday).toBe(true);
-  });
-  it('10 km projection uses the best run of 2 km+ in the last 6 weeks', () => {
-    const p = tenKProjection(allActivities(d), '2026-10-25');
-    expect(p?.from.id).toBe('r1');
-    expect(tenKProjection(allActivities(d), addDays('2026-10-25', 60))).toBeNull();
   });
   it('lists only health metrics that have data', () => {
     expect(presentMetrics({ a: { steps: 1, hrv: 50 }, b: { vo2max: 40 } })).toEqual(['steps', 'hrv', 'vo2max']);

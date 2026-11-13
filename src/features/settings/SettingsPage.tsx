@@ -113,18 +113,16 @@ function ConnectionSection() {
 function GoalsSection() {
   const data = useData();
   const g = useGoals();
-  const [f, setF] = useState({ kcal: '', protein: '', goalWeight: '', tenK: '', steps: '', sleep: '' });
+  const [f, setF] = useState({ kcal: '', protein: '', goalWeight: '', steps: '', sleep: '' });
   useEffect(() => {
-    setF({ kcal: String(g.kcal), protein: String(g.protein), goalWeight: String(g.goalWeight), tenK: fmtDur(g.tenKGoalMin * 60), steps: String(g.stepsGoal), sleep: String(g.sleepGoalH) });
+    setF({ kcal: String(g.kcal), protein: String(g.protein), goalWeight: String(g.goalWeight), steps: String(g.stepsGoal), sleep: String(g.sleepGoalH) });
   }, [g]);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF(s => ({ ...s, [k]: e.target.value }));
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const tenKSec = parseDur(f.tenK);
     const next = {
       targets: { ...data.settings.targets, kcal: num(f.kcal) || 2350, protein: num(f.protein) || 160 },
       goalWeight: num(f.goalWeight) || 79,
-      tenKGoalMin: tenKSec ? Math.round((tenKSec / 60) * 100) / 100 : 45,
       stepsGoal: Math.round(num(f.steps) || 8000),
       sleepGoalH: num(f.sleep) || 7,
     };
@@ -141,7 +139,6 @@ function GoalsSection() {
         <Field label="Calories (kcal/day)">{id => <Input id={id} type="number" inputMode="numeric" min={1200} step={10} value={f.kcal} onChange={set('kcal')} />}</Field>
         <Field label="Protein (g/day)">{id => <Input id={id} type="number" inputMode="numeric" min={0} step={5} value={f.protein} onChange={set('protein')} />}</Field>
         <Field label="Goal weight (kg)">{id => <Input id={id} type="number" inputMode="decimal" step={0.5} value={f.goalWeight} onChange={set('goalWeight')} />}</Field>
-        <Field label="10 km goal (mm:ss)">{id => <Input id={id} inputMode="numeric" pattern="[0-9:]*" value={f.tenK} onChange={set('tenK')} />}</Field>
         <Field label="Steps goal (per day)">{id => <Input id={id} type="number" inputMode="numeric" step={500} min={0} value={f.steps} onChange={set('steps')} />}</Field>
         <Field label="Sleep goal (hours)">{id => <Input id={id} type="number" inputMode="decimal" step={0.25} min={0} max={14} value={f.sleep} onChange={set('sleep')} />}</Field>
         <div className="col-span-2 md:col-span-3"><Button type="submit" variant="primary">Save targets</Button></div>

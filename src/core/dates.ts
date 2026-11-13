@@ -31,6 +31,20 @@ export const fmtShort = (s: string) => format(parseYmd(s), 'd MMM');
 export const fmtLong = (s: string) => format(parseYmd(s), 'EEEE d MMMM');
 export const fmtDow = (s: string) => format(parseYmd(s), 'EEE');
 export const fmtDom = (s: string) => format(parseYmd(s), 'd');
+/** Clock time of an instant, e.g. "16:22". */
+export const fmtClock = (ms: number) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+/** How long ago a reading was taken: "just now", "14 min ago", "Today 07:40", "Mon 04:10", "9 Nov". */
+export function fmtAgo(ms: number, now = Date.now()) {
+  const min = Math.round((now - ms) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  const day = ymd(new Date(ms)), today = ymd(new Date(now));
+  if (day === today) return `Today ${fmtClock(ms)}`;
+  const diff = daysBetween(day, today);
+  if (diff === 1) return `Yesterday ${fmtClock(ms)}`;
+  if (diff < 7) return `${format(new Date(ms), 'EEE')} ${fmtClock(ms)}`;
+  return fmtShort(day);
+}
 export function fmtRelative(s: string, today = todayStr()) {
   const diff = daysBetween(s, today);
   if (diff === 0) return 'Today';

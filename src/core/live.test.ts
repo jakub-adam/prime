@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { durationSec, lastNight, latestInboxFile, mergeLive, numbers, parseShortcutExport, shortcutDate, type ShortcutExport } from './live';
+import { durationSec, lastNight, latestInboxFile, mergeLive, numbers, parseSamples, parseShortcutExport, shortcutDate, type ShortcutExport } from './live';
 
 /* Same shape as the Shortcut writes to inbox/ (synthetic values). */
 const EXPORT: ShortcutExport = {
@@ -109,5 +109,30 @@ describe('Shortcut inbox', () => {
     expect(days['2026-11-10'].steps).toBe(300); // input untouched
     const newer = mergeLive(days, live, '2026-11-10T20:00:00Z');
     expect(newer['2026-11-10']).toMatchObject({ steps: 300, restingHr: 55, hrv: 41 });
+  });
+});
+
+describe('latest readings and samples', () => {
+  const today = { ...EXPORT.today, heart_rate: '95\n62\n71', heart_rate_at: '10 Nov 2026 at 12:10\n10 Nov 2026 at 02:40\n10 Nov 2026 at 13:20' };
+
+  it('takes the newest timed sample as the latest reading, whatever the list order', () => {
+    const live = parseShortcutExport({ ...EXPORT, today }, 'latest.json')!;
+    expect(live.latest?.hrAvg?.v).toBe(71);
+    expect(new Date(live.latest!.hrAvg!.at!).getHours()).toBe(13);
+    expect(live.series?.hrAvg?.map(s => s.v)).toEqual([62, 95, 71]); // sorted by time
+  });
+
+  it('claims no latest reading when the samples carry no times', () => {
+    const live = parseShortcutExport(EXPORT, 'latest.json')!;
+    expect(live.latest?.hrAvg).toBeUndefined();
+    expect(live.series?.hrAvg?.map(s => s.v)).toEqual([62, 71, 95]);
+    expect(live.series?.hrAvg?.[0]?.t).toBeUndefined();
+  });
+
+  it('gives counted things a running total as of the export', () => {
+    const live = parseShortcutExport(EXPORT, 'latest.json')!;
+    expect(live.latest?.steps).toEqual({ v: 806, at: '2026-11-10T13:25:52+01:00' });
+    expect(live.latest?.spo2).toBeUndefined();
+    expect(parseSamples({ blood_oxygen: '0.97\n0.99' }, '').series.spo2?.map(s => s.v)).toEqual([97, 99]);
   });
 });

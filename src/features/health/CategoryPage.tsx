@@ -5,7 +5,7 @@ import { CATEGORY, METRICS, type CategoryKey } from '@/core/calc';
 import { PageHeader, RowLink } from '@/components/common';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { CategoryIcon, HealthCard, metricHref, WeightCard } from './health-ui';
-import { MeasurementsCard, RingsCard, WorkoutsCard } from './HealthSummary';
+import { MeasurementsCard, RingsCard } from './HealthSummary';
 import { SleepPage } from './SleepPage';
 
 export function CategoryPage() {
@@ -21,10 +21,7 @@ export function CategoryPage() {
       <PageHeader back="/health" kicker="Health" title={<span className="flex items-center gap-3"><CategoryIcon cat={c.key} size="lg" />{c.label}</span>} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         {c.key === 'activity' ? (
-          <>
-            <RingsCard className="lg:col-span-5" />
-            <WorkoutsCard className="lg:col-span-7" limit={3} />
-          </>
+          <RingsCard className="lg:col-span-5" />
         ) : null}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-12 xl:grid-cols-3">
           {c.key === 'body' ? <><WeightCard /><MeasurementsCard /></> : null}

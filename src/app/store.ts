@@ -76,6 +76,18 @@ export function useToday() {
   );
 }
 
+/* ---- now, ticking once a minute: keeps "14 min ago" honest without re-rendering every second ---- */
+let nowMs = Date.now();
+const nowListeners = new Set<() => void>();
+if (typeof window !== 'undefined') {
+  const tick = () => { nowMs = Date.now(); nowListeners.forEach(fn => fn()); };
+  setInterval(tick, 60_000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick(); });
+}
+export function useNow() {
+  return useSyncExternalStore(cb => { nowListeners.add(cb); return () => { nowListeners.delete(cb); }; }, () => nowMs);
+}
+
 /* ---- workout draft (prime.draft, same shape as v1) ---- */
 let draft: Draft | null = readJSON<Draft>(kv, KEYS.draft);
 const draftListeners = new Set<() => void>();
