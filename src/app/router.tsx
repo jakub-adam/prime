@@ -16,6 +16,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { TodayPage } from '@/features/today/TodayPage';
 import { LogPage } from '@/features/train/LogPage';
 import { TrainRoute } from '@/features/train/TrainRoute';
+import { IconGallery } from '@/features/train/IconGallery';
 import { Shell } from './Shell';
 
 function RouteError() {
@@ -72,6 +73,7 @@ export const router = createHashRouter([
       { path: 'move/activity/:id', element: <Redirect to={p => `/activity/${encodeURIComponent(p.id ?? '')}`} /> },
       { path: 'metric/:key', element: <Redirect to={p => (p.key === 'sleepH' ? '/health/sleep' : `/health/metric/${p.key}`)} /> },
       { path: 'settings', element: <SettingsPage /> },
+      ...(import.meta.env.DEV ? [{ path: 'dev/icons', element: <IconGallery /> }] : []),
       { path: '*', element: <NotFound /> },
     ],
   },

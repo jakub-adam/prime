@@ -4,12 +4,12 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
 export const buttonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-semibold transition-[background-color,color,box-shadow,transform] duration-150 select-none disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98] [&_svg]:size-[18px] [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-medium transition-[background-color,color,box-shadow,transform] duration-150 select-none disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98] [&_svg]:size-[18px] [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        primary: 'bg-track text-on-accent shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_1px_2px_rgb(0_0_0/0.15)] hover:brightness-[1.06]',
-        lane: 'bg-lane text-on-accent shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_1px_2px_rgb(0_0_0/0.15)] hover:brightness-[1.06]',
+        primary: 'bg-accent text-on-accent hover:brightness-[1.08]',
+        lane: 'bg-accent-soft text-accent-ink hover:brightness-[1.08]',
         secondary: 'border border-line bg-surface text-ink hover:bg-surface-2',
         ghost: 'text-ink hover:bg-surface-3/70',
         subtle: 'bg-surface-3/70 text-ink hover:bg-surface-3',

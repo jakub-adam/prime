@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Prime</title>
 <meta name="description" content="Food, training, body and activity in one place.">
-<meta name="theme-color" content="#f2f3f5">
+<meta name="theme-color" content="#fafafa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20,7 +20,7 @@
     try { pref = JSON.parse(localStorage.getItem('prime.theme') || '"system"') || 'system'; } catch (e) {}
     var dark = pref === 'dark' || (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    document.querySelector('meta[name=theme-color]').setAttribute('content', dark ? '#0a0c0f' : '#f2f3f5');
+    document.querySelector('meta[name=theme-color]').setAttribute('content', dark ? '#09090b' : '#fafafa');
   })();
 </script>
 </head>

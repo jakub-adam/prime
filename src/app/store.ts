@@ -99,7 +99,7 @@ const darkQuery = typeof window !== 'undefined' ? window.matchMedia('(prefers-co
 export function applyTheme() {
   const dark = theme === 'dark' || (theme === 'system' && !!darkQuery?.matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#0a0c0f' : '#f2f3f5');
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#09090b' : '#fafafa');
 }
 darkQuery?.addEventListener('change', () => { if (theme === 'system') applyTheme(); themeListeners.forEach(fn => fn()); });
 export const themes = {
