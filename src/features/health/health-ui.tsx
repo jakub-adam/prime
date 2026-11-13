@@ -8,7 +8,7 @@ import { useData, useHealthDays, useNow, useSnapshot, useToday } from '@/app/sto
 import { avg, CATEGORY, healthDays, METRICS, metricSeries, rollingAvg, STRESS_LABEL, stressLevel, weightSeries, type CategoryKey, type MetricKey } from '@/core/calc';
 import { addDays, fmtAgo, fmtClock, fmtRelative } from '@/core/dates';
 import type { HealthDay } from '@/core/types';
-import { COLOR, Sparkline } from '@/components/charts';
+import { COLOR, Sparkline } from '@/components/spark';
 import { cn, fmt, signed } from '@/lib/utils';
 
 export const CAT_ICON: Record<CategoryKey, LucideIcon> = {

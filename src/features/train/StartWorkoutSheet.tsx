@@ -6,7 +6,7 @@ import { fmtRelative } from '@/core/dates';
 import { ExerciseIcon } from '@/components/ExerciseIcon';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { useStartWorkout } from './train-ui';
+import { useStartWorkout } from './start';
 
 /** Recent workouts by name (plus empty). Picking one prefills exercises from the last session of that name. */
 export function WorkoutPicker({ onPicked }: { onPicked?: () => void }) {

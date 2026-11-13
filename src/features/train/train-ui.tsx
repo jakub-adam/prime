@@ -1,9 +1,9 @@
 import { ChevronRight, Dumbbell, Play, Plus, Trophy } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { drafts, useData, useDraft, useToday } from '@/app/store';
+import { Link } from 'react-router';
+import { useData, useDraft, useToday } from '@/app/store';
 import {
-  fmtSet, newDraft, overload, prFlags, routines, sessionPrCount, sessionSets, sessionVolume, sum, watchStrength, weekStreak, weeklyTraining,
+  fmtSet, overload, prFlags, routines, sessionPrCount, sessionSets, sessionVolume, sum, watchStrength, weekStreak, weeklyTraining,
 } from '@/core/calc';
 import { fmtClock, fmtRelative, fmtShort } from '@/core/dates';
 import { exerciseInfo, MUSCLE_LABEL } from '@/core/exercises';
@@ -14,21 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/misc';
 import { cn, fmt } from '@/lib/utils';
+import { useStartWorkout } from './start';
 
 export const fmtMin = (m: number | null | undefined) => (m == null ? '–' : m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`);
 export const fmtVolume = (kg: number) => (kg >= 10000 ? `${fmt(kg / 1000, 1)} t` : `${fmt(kg)} kg`);
 const sessionReps = (s: Session) => sum(s.exercises.flatMap(e => e.sets.map(st => st.reps ?? 0)));
 
-/** Start a workout named `name` (prefilled from its last session), or blank. */
-export function useStartWorkout() {
-  const data = useData();
-  const today = useToday();
-  const nav = useNavigate();
-  return (name: string, from?: Session) => {
-    drafts.set({ ...newDraft(data.training.sessions, name, today, from), startedAt: Date.now() });
-    nav('/train/log');
-  };
-}
+export { useStartWorkout } from './start';
 
 /** Small rounded label: a gain, a first time, a record. */
 export function Pill({ tone = 'neutral', children }: { tone?: 'up' | 'down' | 'neutral' | 'accent'; children: React.ReactNode }) {
