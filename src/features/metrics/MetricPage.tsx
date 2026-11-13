@@ -235,6 +235,7 @@ export function MetricPage() {
               yFormat={k === 'steps' ? v => (v >= 1000 ? `${v / 1000}k` : String(v)) : undefined}
               ariaLabel={`${def.label} ${weekly ? 'by week' : 'per day'}`}
               onSelect={weekly ? undefined : d => setPicked(d)}
+              selected={def.chart === 'bar' && k !== 'stress' && goal == null ? selRow?.date ?? null : null}
             />
             {selRow ? (
               <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-[10px] bg-surface-2 px-3.5 py-2.5 shadow-card" aria-live="polite">

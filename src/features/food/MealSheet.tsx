@@ -12,7 +12,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 const MEALS = ['Breakfast', 'Lunch', 'Snack', 'Dinner', 'Other'];
-function guessMeal() {
+export function guessMeal() {
   const hr = new Date().getHours();
   return hr < 11 ? 'Breakfast' : hr < 15 ? 'Lunch' : hr < 18 ? 'Snack' : 'Dinner';
 }

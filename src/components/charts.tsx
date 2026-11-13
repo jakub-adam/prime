@@ -7,11 +7,11 @@ import {
 import { fmtDay, fmtShort } from '@/core/dates';
 import { cn } from '@/lib/utils';
 
-export type ChartColor = 'track' | 'lane' | 'muted' | 'good' | 'ink'
+export type ChartColor = 'track' | 'lane' | 'muted' | 'good' | 'ink' | 'carbs' | 'fat'
   | 'activity' | 'body' | 'heart' | 'mind' | 'sleep' | 'respiratory' | 'mobility' | 'hearing'
   | 'awake' | 'rem' | 'core' | 'deep';
 export const COLOR: Record<ChartColor, string> = {
-  track: 'var(--track)', lane: 'var(--lane)', muted: 'var(--muted)', good: 'var(--good)', ink: 'var(--ink)',
+  track: 'var(--track)', lane: 'var(--lane)', muted: 'var(--muted)', good: 'var(--good)', ink: 'var(--ink)', carbs: 'var(--carbs)', fat: 'var(--fat)',
   activity: 'var(--cat-activity)', body: 'var(--cat-body)', heart: 'var(--cat-heart)', mind: 'var(--cat-mind)',
   sleep: 'var(--cat-sleep)', respiratory: 'var(--cat-respiratory)', mobility: 'var(--cat-mobility)', hearing: 'var(--cat-hearing)',
   awake: 'var(--stage-awake)', rem: 'var(--stage-rem)', core: 'var(--stage-core)', deep: 'var(--stage-deep)',
@@ -73,7 +73,7 @@ function ChartTooltip({ active, payload, label, series }: TooltipContentProps<nu
   );
 }
 
-export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, onSelect, yFormat, empty, className, timeAxis, maxY }: {
+export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, onSelect, selected, yFormat, empty, className, timeAxis, maxY }: {
   data: Row[];
   series: Series[];
   goal?: { value: number; label: string } | null;
@@ -81,6 +81,8 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
   height?: number;
   ariaLabel: string;
   onSelect?: (date: string) => void;
+  /** the selected row's date: its bar stays solid and the others fade */
+  selected?: string | null;
   yFormat?: (v: number) => string;
   empty?: ReactNode;
   className?: string;
@@ -131,9 +133,9 @@ export function TimeChart({ data, series, goal, zero, height = 220, ariaLabel, o
           {series.map(s => {
             if (s.kind === 'bar') {
               return (
-                <Bar key={s.key} dataKey={s.key} name={s.label} fill={COLOR[s.color]} radius={[4, 4, 0, 0]} maxBarSize={many ? 10 : 30} isAnimationActive={!reduced} animationDuration={500}
+                <Bar key={s.key} dataKey={s.key} name={s.label} fill={COLOR[s.color]} radius={[3, 3, 0, 0]} maxBarSize={many ? 10 : 30} isAnimationActive={!reduced} animationDuration={500}
                   onClick={onSelect ? (e: { payload?: Row }) => { if (e?.payload?.date) onSelect(e.payload.date); } : undefined}>
-                  {s.colorAt ? data.map((r, i) => <Cell key={r.date} fill={COLOR[s.colorAt!(Number(r[s.key] ?? 0), i)]} />) : null}
+                  {s.colorAt || selected ? data.map((r, i) => <Cell key={r.date} fill={COLOR[s.colorAt ? s.colorAt(Number(r[s.key] ?? 0), i) : s.color]} fillOpacity={selected && r.date !== selected ? 0.4 : 1} />) : null}
                 </Bar>
               );
             }

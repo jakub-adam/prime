@@ -23,14 +23,14 @@ export function NutrientSummary({ t, className }: { t: DayTotals; className?: st
       {split ? (
         <div className="mb-3">
           <div className="flex h-2.5 overflow-hidden rounded-full" aria-hidden>
-            <div className="bg-lane" style={{ width: `${split.protein * 100}%` }} />
-            <div className="bg-[var(--cat-mobility)]" style={{ width: `${split.carbs * 100}%` }} />
-            <div className="bg-[var(--cat-body)]" style={{ width: `${split.fat * 100}%` }} />
+            <div className="bg-protein" style={{ width: `${split.protein * 100}%` }} />
+            <div className="bg-carbs" style={{ width: `${split.carbs * 100}%` }} />
+            <div className="bg-fat" style={{ width: `${split.fat * 100}%` }} />
           </div>
           <p className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[12px] text-muted">
-            <span><span aria-hidden className="mr-1 inline-block size-2 rounded-full bg-lane" />Protein {fmt(split.protein * 100)}%</span>
-            <span><span aria-hidden className="mr-1 inline-block size-2 rounded-full bg-[var(--cat-mobility)]" />Carbs {fmt(split.carbs * 100)}%</span>
-            <span><span aria-hidden className="mr-1 inline-block size-2 rounded-full bg-[var(--cat-body)]" />Fat {fmt(split.fat * 100)}%</span>
+            <span><span aria-hidden className="mr-1 inline-block size-2 rounded-full bg-protein" />Protein {fmt(split.protein * 100)}%</span>
+            <span><span aria-hidden className="mr-1 inline-block size-2 rounded-full bg-carbs" />Carbs {fmt(split.carbs * 100)}%</span>
+            <span><span aria-hidden className="mr-1 inline-block size-2 rounded-full bg-fat" />Fat {fmt(split.fat * 100)}%</span>
             <span className="sr-only">of calories</span>
           </p>
         </div>
